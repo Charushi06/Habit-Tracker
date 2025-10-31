@@ -42,11 +42,8 @@ A modern, open-source habit tracker built with **React**, **TypeScript**, **Vite
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Environment Setup](#environment-setup)
-- [Admin Guide](#admin-guide)
-  - [Deployment](#deployment)
-  - [Database Setup](#database-setup)
+- [Database Setup](#database-setup)
   - [Running Migrations](#running-migrations)
-  - [Monitoring](#monitoring)
 - [Development](#development)
   - [Project Structure](#project-structure)
   - [Available Scripts](#available-scripts)
@@ -67,7 +64,7 @@ A modern, open-source habit tracker built with **React**, **TypeScript**, **Vite
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Ayush-Raj-Chourasia/Habit-Tracker.git
+   git clone https://github.com/Charushi06/Habit-Tracker.git
    cd Habit-Tracker
    ```
 
@@ -99,60 +96,9 @@ A modern, open-source habit tracker built with **React**, **TypeScript**, **Vite
 
 ---
 
-## 👨‍💼 Admin Guide
+## �️ Database Setup
 
-### Deployment
-
-#### Option 1: Netlify (Recommended)
-
-1. **Connect your repository:**
-   - Go to [Netlify](https://www.netlify.com/)
-   - Click "Add new site" → "Import an existing project"
-   - Connect to your GitHub repository
-
-2. **Configure build settings:**
-   ```
-   Build command: npm run build
-   Publish directory: dist
-   ```
-
-3. **Add environment variables:**
-   - Go to Site settings → Environment variables
-   - Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
-
-4. **Deploy:**
-   - Netlify will automatically build and deploy your site
-   - Every push to `master` branch will trigger a new deployment
-
-#### Option 2: Vercel
-
-1. **Import project:**
-   - Go to [Vercel](https://vercel.com/)
-   - Click "New Project" and import your GitHub repository
-
-2. **Configure:**
-   ```
-   Framework Preset: Vite
-   Build Command: npm run build
-   Output Directory: dist
-   ```
-
-3. **Add environment variables** and deploy
-
-### Database Setup
-
-#### Initial Setup (New Supabase Project)
-
-1. **Create a Supabase project:**
-   - Go to [Supabase Dashboard](https://app.supabase.com/)
-   - Click "New project"
-   - Choose organization, name, database password, and region
-
-2. **Wait for project provisioning** (takes ~2 minutes)
-
-3. **Run migrations** (see below)
-
-#### Understanding the Database Schema
+### Understanding the Database Schema
 
 The application uses three main tables:
 
@@ -165,9 +111,9 @@ All tables have Row-Level Security (RLS) policies to ensure users can only acces
 
 ### Running Migrations
 
-**⚠️ IMPORTANT:** Migrations must be run in order whenever you deploy updates or set up a new environment.
+**⚠️ IMPORTANT:** Migrations must be run in order when setting up the database.
 
-#### Method 1: Using Supabase SQL Editor (Recommended for Production)
+#### Method 1: Using Supabase SQL Editor
 
 1. **Open SQL Editor:**
    - Go to your Supabase Dashboard
@@ -266,8 +212,6 @@ After running migrations, verify:
 - ✅ HTTPS enabled on deployed site
 - ✅ Database backups configured (automatic in Supabase)
 
-### Common Admin Tasks
-
 #### Adding a New Migration
 
 When a contributor adds a new feature requiring database changes:
@@ -293,7 +237,7 @@ If a deployment causes issues:
 
 ---
 
-## � Development
+## Development
 
 ### Project Structure
 
@@ -370,13 +314,6 @@ This project is open source and available under the [MIT License](LICENSE).
 - Built with [Supabase](https://supabase.com/)
 - Icons from [Lucide](https://lucide.dev/)
 - Deployed on [Netlify](https://www.netlify.com/)
-
----
-
-## 📞 Support
-
-- **Issues:** [GitHub Issues](https://github.com/Ayush-Raj-Chourasia/Habit-Tracker/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/Ayush-Raj-Chourasia/Habit-Tracker/discussions)
 
 ---
 
