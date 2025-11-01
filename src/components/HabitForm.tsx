@@ -9,6 +9,11 @@ const COLORS = [
 
 const ICONS = ['🎯', '📚', '💪', '🧘', '🏃', '💻', '🎨', '🎵', '✍️', '🌱'];
 
+const CATEGORIES = [
+  "General", "Health", "Fitness", "Learning", "Productivity",
+  "Wellness", "Personal", "Nutrition", "Professional", "Creative"
+];
+
 // New constants for custom days
 const WEEK_DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
@@ -22,7 +27,7 @@ type Props = {
     description: string;
     color: string;
     icon: string;
-    frequency: 'daily' | 'weekly';
+    frequency: 'daily' | 'weekly' | 'custom';
     target_days: number;
     reminders_enabled: boolean;
     reminder_time: string | null;
@@ -37,12 +42,13 @@ export function HabitForm({ habitId, onClose, initial }: Props) {
   const [description, setDescription] = useState('');
   const [color, setColor] = useState(COLORS[0]);
   const [icon, setIcon] = useState(ICONS[0]);
-  
+
   // Updated state for frequency
   const [frequency, setFrequency] = useState<'daily' | 'custom'>('daily');
   const [activeDays, setActiveDays] = useState<number[]>(ALL_DAYS); // New state
-  
 
+
+  const [category, setCategory] = useState<string[]>([CATEGORIES[0]]);
   const [targetDays, setTargetDays] = useState(7);
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('09:00');
@@ -60,9 +66,11 @@ export function HabitForm({ habitId, onClose, initial }: Props) {
         setDescription(habit.description);
         setColor(habit.color);
         setIcon(habit.icon);
+        setCategory(habit.category && habit.category.length > 0 ? habit.category : [CATEGORIES[0]]);
         
+
         // Handle old 'weekly' frequency as 'custom'
-        if ((habit.frequency as any) === 'weekly') {
+        if (habit.frequency === 'weekly') {
           setFrequency('custom');
           setActiveDays(WEEKDAYS); // Default old 'weekly' habits to weekdays
         } else {
@@ -80,16 +88,18 @@ export function HabitForm({ habitId, onClose, initial }: Props) {
       if (initial.description !== undefined) setDescription(initial.description);
       if (initial.color) setColor(initial.color);
       if (initial.icon) setIcon(initial.icon);
-      if (initial.frequency) setFrequency(initial.frequency as 'daily' | 'custom');
+      if (initial.frequency) setFrequency(initial.frequency === 'weekly' ? 'custom' : initial.frequency as 'daily' | 'custom');
       if (typeof initial.target_days === 'number') setTargetDays(initial.target_days);
       if (typeof initial.reminders_enabled === 'boolean') setRemindersEnabled(initial.reminders_enabled);
       if (typeof initial.browser_notifications === 'boolean') setBrowserNotifications(initial.browser_notifications);
       if (typeof initial.email_notifications === 'boolean') setEmailNotifications(initial.email_notifications);
       if (initial.reminder_time) setReminderTime(initial.reminder_time);
+      setCategory([CATEGORIES[0]]);
     } else {
       // Set defaults for new habit
       setFrequency('daily');
       setActiveDays(ALL_DAYS);
+      setCategory([CATEGORIES[0]]);
     }
     setError(''); // Clear any previous errors
   }, [habitId, habits, initial]);
@@ -104,10 +114,34 @@ export function HabitForm({ habitId, onClose, initial }: Props) {
     } else {
       newActiveDays = [...activeDays, dayIndex].sort();
     }
-    
+
     // Don't allow unselecting all days
     if (newActiveDays.length > 0) {
       setActiveDays(newActiveDays);
+    }
+  }
+
+  function toggleCategory(cat: string) {
+    if (cat === 'General') {
+      setCategory(['General']);
+      return;
+    }
+
+    let newCategories = [...category];
+    if (newCategories.includes(cat)) {
+      // Remove it
+      newCategories = newCategories.filter(c => c !== cat);
+    } else {
+      // Add it
+      newCategories.push(cat);
+      // And remove 'General'
+      newCategories = newCategories.filter(c => c !== 'General');
+    }
+
+    if (newCategories.length === 0) {
+      setCategory(['General']);
+    } else {
+      setCategory(newCategories);
     }
   }
 
@@ -117,54 +151,61 @@ export function HabitForm({ habitId, onClose, initial }: Props) {
   setError('');
 
   const finalActiveDays = frequency === 'daily' ? ALL_DAYS : activeDays;
+  const finalCategory = category.length > 0 ? category : [CATEGORIES[0]];
 
-  try {
-    if (habitId) {
-      await updateHabit(habitId, {
-        name,
-        description,
-        color,
-        icon,
-        frequency,
-        active_days: finalActiveDays,
-        target_days: targetDays,
-        reminder_time: remindersEnabled ? reminderTime : null,
-        reminders_enabled: remindersEnabled,
-        browser_notifications: browserNotifications,
-        email_notifications: emailNotifications,
-      });
-    } else {
-      await createHabit({
-        name,
-        description,
-        color,
-        icon,
-        frequency,
-        active_days: finalActiveDays,
-        is_active: true,
-        target_days: targetDays,
-        reminder_time: remindersEnabled ? reminderTime : null,
-        reminders_enabled: remindersEnabled,
-        browser_notifications: browserNotifications,
-        email_notifications: emailNotifications,
-        snoozed_until: null,
-        snooze_duration: null,
-      });
-    }
-    onClose();
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'An error occurred while saving the habit.';
-    setError(errorMessage);
-
-    setTimeout(() => {
-      errorRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
-    }, 100);
-  } finally {
-    setSaving(false);
+ try {
+  if (habitId) {
+    await updateHabit(habitId, {
+      name,
+      description,
+      color,
+      icon,
+      frequency,
+      active_days: finalActiveDays,
+      category: finalCategory,
+      target_days: targetDays,
+      reminder_time: remindersEnabled ? reminderTime : null,
+      reminders_enabled: remindersEnabled,
+      browser_notifications: browserNotifications,
+      email_notifications: emailNotifications,
+    });
+  } else {
+    await createHabit({
+      name,
+      description,
+      color,
+      icon,
+      frequency,
+      active_days: finalActiveDays,
+      category: finalCategory,
+      target_days: targetDays,
+      is_active: true,
+      reminder_time: remindersEnabled ? reminderTime : null,
+      reminders_enabled: remindersEnabled,
+      browser_notifications: browserNotifications,
+      email_notifications: emailNotifications,
+      snoozed_until: null,
+      snooze_duration: null,
+    });
   }
+
+  onClose();
+} catch (error: unknown) {
+  const errorMessage = error instanceof Error
+    ? error.message
+    : 'An error occurred while saving the habit.';
+  setError(errorMessage);
+
+  setTimeout(() => {
+    errorRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+  }, 100);
+} finally {
+  setSaving(false);
+}
+
 }
 
 
@@ -186,7 +227,7 @@ export function HabitForm({ habitId, onClose, initial }: Props) {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div 
+            <div
               ref={errorRef}
               className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
               {error}
@@ -257,6 +298,28 @@ export function HabitForm({ habitId, onClose, initial }: Props) {
                   style={{ backgroundColor: c }}
                   aria-label={`Select color ${c}`}
                 />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Category (Select one or more)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => toggleCategory(cat)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    category.includes(cat)
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {cat}
+                </button>
               ))}
             </div>
           </div>

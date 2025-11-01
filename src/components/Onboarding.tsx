@@ -4,12 +4,13 @@ import { useHabits } from '../hooks/useHabits';
 import { useAuth } from '../contexts/AuthContext';
 import { HabitForm } from './HabitForm';
 
-export function SuggestedHabits({ shouldSeedDefaults = false }: { shouldSeedDefaults?: boolean }) {
-  const { createHabit, habits, fetchPrebuiltHabits, seedDefaultPrebuiltHabits, prebuiltHabits } = useHabits();
+export function SuggestedHabits({ shouldSeedDefaults = false, onHabitAdded, onSavingChange }: { shouldSeedDefaults?: boolean; onHabitAdded?: () => void; onSavingChange?: (saving: boolean) => void }) {
+  const { createHabit, habits, fetchPrebuiltHabits, seedDefaultPrebuiltHabits, prebuiltHabits, refreshHabits } = useHabits();
   const [prebuiltHabitsLoaded, setPrebuiltHabitsLoaded] = useState(false);
   const [showHabitForm, setShowHabitForm] = useState(false);
   const [initialDraft, setInitialDraft] = useState<{ name: string; description: string; color: string; icon: string; frequency: 'daily' | 'weekly' | 'custom'; target_days: number; } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const didInitRef = useRef(false);
 
   // Load prebuilt habits on component mount
@@ -18,11 +19,11 @@ export function SuggestedHabits({ shouldSeedDefaults = false }: { shouldSeedDefa
     didInitRef.current = true;
     const loadPrebuiltHabits = async () => {
       try {
-        const habits = await fetchPrebuiltHabits();
-        if (habits.length === 0 && shouldSeedDefaults) {
-          // Seed default habits if none exist and seeding is enabled
+        let habits = await fetchPrebuiltHabits();
+        if (habits.length === 0) {
+          // Seed default habits if none exist
           await seedDefaultPrebuiltHabits();
-          await fetchPrebuiltHabits();
+          habits = await fetchPrebuiltHabits();
         }
         setPrebuiltHabitsLoaded(true);
       } catch (error) {
@@ -32,7 +33,12 @@ export function SuggestedHabits({ shouldSeedDefaults = false }: { shouldSeedDefa
     };
 
     loadPrebuiltHabits();
-  }, [fetchPrebuiltHabits, seedDefaultPrebuiltHabits, shouldSeedDefaults]);
+  }, [fetchPrebuiltHabits, seedDefaultPrebuiltHabits]);
+
+  // Notify parent component of saving state changes
+  useEffect(() => {
+    onSavingChange?.(saving);
+  }, [saving, onSavingChange]);
 
   // Filter out habits that user already has
   const existingHabitNames = new Set(habits.map(h => h.name.toLowerCase()));
@@ -64,9 +70,10 @@ export function SuggestedHabits({ shouldSeedDefaults = false }: { shouldSeedDefa
         description: h.description,
         color: h.color,
         icon: h.icon,
-        frequency: freq,
-        active_days: freq === 'daily' ? [0, 1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5], // weekdays default for custom
+        frequency: h.frequency === 'weekly' ? 'custom' : h.frequency as 'daily' | 'custom',
+        active_days: h.frequency === 'weekly' ? [1, 2, 3, 4, 5] : [],
         target_days: h.target_days,
+        category: [h.category],
         is_active: true,
         reminder_time: null,
         reminders_enabled: false,
@@ -75,11 +82,62 @@ export function SuggestedHabits({ shouldSeedDefaults = false }: { shouldSeedDefa
         snoozed_until: null,
         snooze_duration: null,
       });
+      // Refresh habits to ensure the state is updated
+      await refreshHabits();
+      // Call the callback to close the onboarding modal after adding a habit
+      onHabitAdded?.();
     } finally {
       setSaving(false);
     }
   };
 
+  const toggleSelection = (index: number) => {
+    const newSelected = new Set(selectedIndices);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setSelectedIndices(newSelected);
+  };
+
+  const handleAddSelected = async () => {
+    if (selectedIndices.size === 0) return;
+
+    setSaving(true);
+    try {
+      for (const index of Array.from(selectedIndices)) {
+        const h = availableHabits[index];
+        try {
+          await createHabit({
+            name: h.name,
+            description: h.description,
+            color: h.color,
+            icon: h.icon,
+            frequency: h.frequency === 'weekly' ? 'custom' : h.frequency as 'daily' | 'custom',
+            active_days: h.frequency === 'weekly' ? [1, 2, 3, 4, 5] : [],
+            target_days: h.target_days,
+            category: [h.category],
+            is_active: true,
+            reminder_time: null,
+            reminders_enabled: false,
+            browser_notifications: false,
+            email_notifications: false,
+            snoozed_until: null,
+            snooze_duration: null,
+          });
+        } catch (error) {
+          console.error(`Failed to add habit "${h.name}":`, error);
+        }
+      }
+      // Refresh habits to update the UI immediately
+      await refreshHabits();
+      setSelectedIndices(new Set()); // Clear selection after adding
+      onHabitAdded?.(); // Call the callback to close the onboarding modal after adding a habit
+    } finally {
+      setSaving(false);
+    }
+  };
   // no-op legacy handler removed; customization now uses HabitForm
 
   if (!prebuiltHabitsLoaded) {
@@ -113,11 +171,21 @@ export function SuggestedHabits({ shouldSeedDefaults = false }: { shouldSeedDefa
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {availableHabits.map((habit, index) => {
+          const isSelected = selectedIndices.has(index);
           return (
             <div
               key={habit.id || index}
-              className={`text-left relative p-4 rounded-xl border-2 transition-all border-gray-200 dark:border-gray-600`}
+              onClick={() => toggleSelection(index)}
+              className={`text-left relative p-4 rounded-xl border-2 transition-all cursor-pointer ${isSelected
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                }`}
             >
+              {isSelected && (
+                <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm">✓</span>
+                </div>
+              )}
               <div className="flex items-start gap-3 mb-3">
                 <div
                   className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
@@ -169,14 +237,20 @@ export function SuggestedHabits({ shouldSeedDefaults = false }: { shouldSeedDefa
               <div className="flex gap-2 mt-4">
                 <button
                   type="button"
-                  onClick={() => openCustomize(index)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openCustomize(index);
+                  }}
                   className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Customize
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleQuickAdd(index)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleQuickAdd(index);
+                  }}
                   disabled={saving}
                   className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                 >
@@ -188,6 +262,18 @@ export function SuggestedHabits({ shouldSeedDefaults = false }: { shouldSeedDefa
         })}
       </div>
 
+      {selectedIndices.size > 0 && (
+        <div className="flex justify-center mb-8">
+          <button
+            onClick={handleAddSelected}
+            disabled={saving}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <span>Add Selected ({selectedIndices.size})</span>
+          </button>
+        </div>
+      )}
+
       {showHabitForm && initialDraft && (
         <HabitForm
           habitId={null}
@@ -197,7 +283,7 @@ export function SuggestedHabits({ shouldSeedDefaults = false }: { shouldSeedDefa
             description: initialDraft.description,
             color: initialDraft.color,
             icon: initialDraft.icon,
-            frequency: (initialDraft.frequency === 'custom' ? 'daily' : initialDraft.frequency),
+            frequency: initialDraft.frequency as 'daily' | 'weekly' | 'custom',
             target_days: initialDraft.target_days,
             reminders_enabled: false,
             reminder_time: null,
@@ -211,24 +297,28 @@ export function SuggestedHabits({ shouldSeedDefaults = false }: { shouldSeedDefa
 }
 
 // Onboarding component for new users with no habits - shows as a modal
-export function Onboarding() {
+export function Onboarding({ onOpenPrebuiltManager }: { onOpenPrebuiltManager?: () => void }) {
   const { habits, loading } = useHabits();
   const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
 
   // Only show onboarding modal for users with no habits and when not loading
-  if (loading || habits.length > 0) {
+  // Don't close during saving to allow multiple habits to be added
+  if (loading || (habits.length > 0 && !saving)) {
     return null;
   }
 
-  // Show once per user
-  const key = `onboarding_shown_${user?.id ?? 'anon'}`;
-  const alreadyShown = typeof window !== 'undefined' && localStorage.getItem(key) === '1';
-  if (alreadyShown) return null;
+  // Show for new users with no habits
+  // Temporarily disabled localStorage check for testing
+  // const key = `onboarding_shown_${user?.id ?? 'anon'}`;
+  // const alreadyShown = typeof window !== 'undefined' && localStorage.getItem(key) === '1';
+  // if (alreadyShown) return null;
 
   // Mark as shown so it won't appear next time
+  const key = `onboarding_shown_${user?.id ?? 'anon'}`;
   if (typeof window !== 'undefined') {
-    try { 
-      localStorage.setItem(key, '1'); 
+    try {
+      localStorage.setItem(key, '1');
     } catch (e) {
       // Ignore storage errors
       console.warn('Failed to save onboarding state:', e);
@@ -247,11 +337,14 @@ export function Onboarding() {
               Welcome to Habit Tracker!
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Let's get you started with some popular habits. Choose the ones that interest you.
+              Let's get you started with your first habit. Choose one that interests you.
             </p>
           </div>
 
-          <SuggestedHabits shouldSeedDefaults={true} />
+          <SuggestedHabits shouldSeedDefaults={true} onHabitAdded={() => {
+            // Close the onboarding modal when a habit is added
+            // This will be handled by the parent component checking habits.length > 0
+          }} onSavingChange={setSaving} />
 
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">

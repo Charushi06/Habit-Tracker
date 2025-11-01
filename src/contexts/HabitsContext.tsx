@@ -21,6 +21,7 @@ type Habit = {
   email_notifications: boolean;
   snoozed_until: string | null;
   snooze_duration: number | null;
+  category: string[];
   created_at: string;
   updated_at: string;
 };
@@ -227,47 +228,28 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
   async function createHabit(habit: Omit<Habit, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'target_days'> & { target_days?: number }) {
     if (!user) throw new Error('You must be logged in to create a habit.');
     const trimmedName = habit.name.trim().toLowerCase();
-    const duplicate = habits.find(
-      h => h.name.trim().toLowerCase() === trimmedName
-    );
-
-    if (duplicate) {
-      throw new Error('A habit with this name already exists. Please choose a different name.');
-    }
-
-    console.log('Creating habit with data:', habit);
-    console.log('User ID:', user.id);
-
-    try {
-      let nextUtc: string | null = null;
-      const effectiveTz = (profile?.timezone && (profile?.timezone_manual || profile?.timezone)) ? profile.timezone! : getBrowserTimeZone();
-      if (habit.reminders_enabled && habit.reminder_time) {
-        nextUtc = nextUtcInstantFromLocalTime(habit.reminder_time, effectiveTz);
-      }
-      const { data, error } = await supabase
-        .from('habits')
-        .insert({
-          ...habit,
-          user_id: user.id,
-          active_days: habit.frequency === 'daily' ? [0,1,2,3,4,5,6] : habit.active_days,
-          target_days: 7,
-          next_reminder_at_utc: nextUtc
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Supabase error creating habit:', error);
-        throw error;
-      }
-
-      console.log('Habit created successfully:', data);
-      setHabits([data, ...habits]);
-      return data;
-    } catch (error) {
-      console.error('Exception creating habit:', error);
-      throw error;
-    }
+    // Check database for duplicates instead of local state to avoid issues with concurrent adds
+    const { data: existing, error: checkError } = await supabase
+      .from('habits')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .ilike('name', trimmedName);
+    if (checkError) throw checkError;
+    if (existing && existing.length > 0) throw new Error('A habit with this name already exists.');
+    const { data, error } = await supabase
+      .from('habits')
+      .insert({
+        ...habit,
+        user_id: user.id,
+        active_days: habit.frequency === 'daily' ? [0,1,2,3,4,5,6] : habit.active_days,
+        target_days: 7,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    setHabits([data, ...habits]);
+    return data;
   }
 
   async function updateHabit(id: string, updates: Partial<Habit>) {
@@ -417,6 +399,12 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     const defaults = [
       { name: 'Drink Water', description: 'Stay hydrated', color: '#3b82f6', icon: '💧', frequency: 'daily' as const, target_days: 7, category: 'Health', is_default: true },
       { name: 'Exercise', description: '30 minutes of physical activity', color: '#ef4444', icon: '💪', frequency: 'daily' as const, target_days: 5, category: 'Fitness', is_default: true },
+      { name: 'Read Books', description: 'Read for 30 minutes daily', color: '#10b981', icon: '📚', frequency: 'daily' as const, target_days: 7, category: 'Learning', is_default: true },
+      { name: 'Meditate', description: 'Practice mindfulness for 10 minutes', color: '#8b5cf6', icon: '🧘', frequency: 'daily' as const, target_days: 7, category: 'Wellness', is_default: true },
+      { name: 'Journal', description: 'Write down your thoughts and reflections', color: '#f59e0b', icon: '📝', frequency: 'daily' as const, target_days: 5, category: 'Personal', is_default: true },
+      { name: 'Walk', description: 'Take a 20-minute walk outdoors', color: '#06b6d4', icon: '🚶', frequency: 'daily' as const, target_days: 6, category: 'Fitness', is_default: true },
+      { name: 'Learn Language', description: 'Practice a new language for 15 minutes', color: '#ec4899', icon: '🌍', frequency: 'daily' as const, target_days: 5, category: 'Learning', is_default: true },
+      { name: 'Healthy Breakfast', description: 'Eat a nutritious breakfast', color: '#84cc16', icon: '🥑', frequency: 'daily' as const, target_days: 7, category: 'Nutrition', is_default: true },
     ];
 
     const { data, error } = await supabase.from('prebuilt_habits').insert(defaults.map(h => ({ ...h, user_id: user.id }))).select();

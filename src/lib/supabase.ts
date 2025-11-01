@@ -37,6 +37,7 @@ export type Habit = {
   next_reminder_at_utc?: string | null; // ISO string for next reminder run in UTC
   created_at: string;
   updated_at: string;
+  category: string[];
 };
 
 export type HabitCompletion = {

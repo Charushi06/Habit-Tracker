@@ -13,8 +13,11 @@ import {
   Bell,
   Edit,
   Trash2,
+  Filter,
   BookOpen,
+  Download,
   Globe2,
+  User,
 } from 'lucide-react';
 import { HabitForm } from './HabitForm';
 import { CalendarView } from './CalendarView';
@@ -22,18 +25,28 @@ import { ProgressView } from './ProgressView';
 import { NotificationsPanel } from './NotificationsPanel';
 import { HistoryView } from './HistoryView';
 import { SuggestedHabits, Onboarding } from './Onboarding';
+import { Profile } from './Profile';
+
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { ExportModal } from './ExportModal';
 import { useHabits } from '../hooks/useHabits';
 import { PrebuiltHabitsManager } from './PrebuiltHabitsManager';
 import { Footer } from './Footer';
 import { TimezoneSettings } from './TimezoneSettings';
 
-type View = 'dashboard' | 'calendar' | 'progress' | 'history';
+type View = 'dashboard' | 'calendar' | 'progress' | 'history' | 'profile';
+
+const getCategories = (habit: { category?: string[] | null }): string[] => {
+  if (habit.category && habit.category.length > 0) {
+    return habit.category;
+  }
+  return ['General'];
+};
 
 export function Dashboard() {
-  const { habits, loading, toggleCompletion, isCompleted, getStreak, deleteHabit } = useHabits();
-  const { signOut } = useAuth();
+  const { habits, completions, loading, toggleCompletion, isCompleted, getStreak, deleteHabit } = useHabits();
+  const { signOut, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -41,8 +54,10 @@ export function Dashboard() {
   const [editingHabit, setEditingHabit] = useState<string | null>(null);
   const [deletingHabit, setDeletingHabit] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [showTzSettings, setShowTzSettings] = useState(false);
   const [showPrebuiltManager, setShowPrebuiltManager] = useState(false);
+  const [filterCategory, setFilterCategory] = useState('All');
 
   const today = new Date().toISOString().split('T')[0];
   const todayDay = new Date().getDay();
@@ -67,6 +82,8 @@ export function Dashboard() {
     }
   };
 
+
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -76,17 +93,29 @@ export function Dashboard() {
   }
 
   // Filter habits to only those active today
-  const activeHabitsToday = habits.filter((habit: any) => {
-    const frequency = (habit.frequency as any) === 'weekly' ? 'custom' : habit.frequency;
+  // --- MODIFIED: Filtering Logic ---
+
+  // 1. Get all unique categories (flatMap handles arrays)
+  const allCategories = ['All', ...Array.from(new Set(habits.flatMap(getCategories)))].sort();
+
+  // 2. Filter habits active for today
+  const activeHabitsToday = habits.filter((habit) => {
+    const frequency = habit.frequency === 'weekly' ? 'custom' : habit.frequency;
     const activeDays =
       frequency === 'daily' ? [0, 1, 2, 3, 4, 5, 6] : habit.active_days || [];
     return activeDays.includes(todayDay);
   });
 
-  const completedToday = activeHabitsToday.filter((h: any) => isCompleted(h.id, today)).length;
-  const totalActive = activeHabitsToday.length;
-  const reminderCount = habits.filter((h: any) => h.reminders_enabled && h.reminder_time).length;
+  // 3. Filter by selected category (checks if array *includes* the filter)
+  const filteredHabitsToday = activeHabitsToday.filter(habit => {
+    if (filterCategory === 'All') return true;
+    return getCategories(habit).includes(filterCategory);
+  });
 
+  // 4. Update stats based on the *filtered* list
+  const completedToday = filteredHabitsToday.filter((h) => isCompleted(h.id, today)).length;
+  const totalActive = filteredHabitsToday.length;
+  const reminderCount = habits.filter((h) => h.reminders_enabled && h.reminder_time).length;
   return (
     <div className={isDarkMode ? 'dark' : ''}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
@@ -138,6 +167,8 @@ export function Dashboard() {
                   {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
 
+
+
                 {/* Logout */}
                 <button
                   onClick={() => signOut()}
@@ -159,15 +190,15 @@ export function Dashboard() {
               { id: 'calendar', icon: Calendar, label: 'Calendar' },
               { id: 'progress', icon: TrendingUp, label: 'Progress' },
               { id: 'history', icon: BookOpen, label: 'History' },
+              { id: 'profile', icon: User, label: 'Profile' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setCurrentView(tab.id as View)}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  currentView === tab.id
+                className={`px-4 py-2 font-medium transition-colors ${currentView === tab.id
                     ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <tab.icon className="w-4 h-4" />
@@ -226,13 +257,40 @@ export function Dashboard() {
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                   Today's Habits
                 </h2>
-                <button
-                  onClick={() => setShowHabitForm(true)}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Add Habit</span>
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowExportModal(true)}
+                    className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Download className="w-5 h-5" />
+                    <span>Export Data</span>
+                  </button>
+                  <button
+                    onClick={() => setShowHabitForm(true)}
+                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>Add Habit</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Category Filters */}
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by:</span>
+                {allCategories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setFilterCategory(cat)}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${filterCategory === cat
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
 
               {/* Habit Cards */}
@@ -255,11 +313,28 @@ export function Dashboard() {
                     <span>Create Your First Habit</span>
                   </button>
                 </div>
+              ) : filteredHabitsToday.length === 0 ? ( // NEW: Empty state for filters
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center border border-gray-200 dark:border-gray-700">
+                  <Filter className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                    No habits in "{filterCategory}"
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Try selecting a different category or add a new habit to this one.
+                  </p>
+                  <button
+                    onClick={() => setFilterCategory('All')}
+                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Show All Habits
+                  </button>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {activeHabitsToday.map((habit: any) => {
+                  {filteredHabitsToday.map((habit) =>{
                     const completed = isCompleted(habit.id, today);
                     const streak = getStreak(habit.id);
+                    const habitCategories = getCategories(habit);
                     return (
                       <div
                         key={habit.id}
@@ -303,17 +378,30 @@ export function Dashboard() {
                         </div>
 
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                            <Flame className="w-4 h-4" />
-                            <span>{streak} day streak</span>
+                          {/* Container now wraps and has a smaller gap */}
+                          <div className="flex items-center flex-wrap gap-2 text-sm">
+                            <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                              <Flame className="w-4 h-4" />
+                              <span>{streak} day streak</span>
+                            </div>
+
+                            {/* Map over all categories and create a badge for each */}
+                            {habitCategories.map(cat => (
+                              <span
+                                key={cat}
+                                className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400 rounded-full"
+                              >
+                                {cat}
+                              </span>
+                            ))}
                           </div>
+
                           <button
                             onClick={() => toggleCompletion(habit.id, today)}
-                            className={`p-2 rounded-lg transition-all ${
-                              completed
+                            className={`p-2 rounded-lg transition-all ${completed
                                 ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'
-                            }`}
+                              }`}
                           >
                             {completed ? (
                               <CheckCircle2 className="w-6 h-6" />
@@ -328,13 +416,14 @@ export function Dashboard() {
                 </div>
               )}
 
-              {habits.length > 0 && <SuggestedHabits />}
+              <SuggestedHabits />
             </>
           )}
 
           {currentView === 'calendar' && <CalendarView />}
           {currentView === 'progress' && <ProgressView />}
           {currentView === 'history' && <HistoryView />}
+          {currentView === 'profile' && <Profile />}
         </main>
 
         <Footer />
@@ -350,10 +439,10 @@ export function Dashboard() {
           />
         )}
 
-        {/* Prebuilt Habits Manager */}
-        <PrebuiltHabitsManager
-          isOpen={showPrebuiltManager}
-          onClose={() => setShowPrebuiltManager(false)}
+        {/* Export Modal */}
+        <ExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
         />
 
         {/* Onboarding Modal */}

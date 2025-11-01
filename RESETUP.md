@@ -1,39 +1,57 @@
-# 🧩 RESETUP GUIDE — Supabase Database
+# Re-setup Supabase Storage Bucket for Avatars
 
-This guide explains how to correctly re-run the Supabase database setup when a **new migration file** has been added on top of the existing one.
+This guide provides instructions for administrators to configure a Supabase storage bucket for user avatars in the Habit-Tracker app. Avatars will allow users to upload profile images, stored securely with Row Level Security (RLS) policies to ensure only authenticated users can upload to their own directories, while allowing public reads for displaying avatars.
 
----
+## Step 1: Create the Storage Bucket
+1. Log in to your Supabase Dashboard.
+2. Navigate to **Storage** in the left sidebar.
+3. Click **New Bucket**.
+4. Set the following:
+   - **Name**: `avatars` (use lowercase, no spaces).
+   - **Public Bucket**: Enable this if you want avatars publicly readable (recommended for profile images). If disabled, uploads will be private, and you'll need signed URLs for reads.
+   - **File Size Limit**: Set to 5MB (or as needed for avatars).
+5. Click **Create Bucket**.
 
-## ⚙️ 1. Background
+## Step 2: Enable Row Level Security (RLS)
+Supabase Storage uses RLS on the underlying `storage.objects` table to control access.
 
-- The project originally had **one main migration file** located in `supabase/migrations/`.
-- A **new migration file** has now been created for an additional feature.(`supabase/migrations/20251027000000_complete_habit_reminder_and_snooze_fields.sql`)
-- The goal is to **keep all existing migrations** while ensuring the new migration runs properly.
+1. In the Supabase Dashboard, go to **Authentication > Policies** (or directly to SQL Editor for custom policies).
+2. Ensure RLS is enabled on the `storage.objects` table (it is by default).
 
----
+## Step 3: Create RLS Policies
+We'll create policies for:
+- **Uploads/Updates**: Authenticated users can only insert/update their own avatars.
+- **Reads**: Public access to view avatars (if bucket is public).
 
-## 🧱METHOD 1
+Use the SQL Editor in the Dashboard to run these policies. 
 
-Make sure Supabase CLI is installed and up to date:
-```bash
-supabase --version
-Simply start your local Supabase environment and run all pending migrations:
+### Policy 1: Users can upload their own avatars (INSERT)
+```sql
+-- Enable RLS if not already
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- Policy for inserting avatars: Users can upload to their own folder
+CREATE POLICY "Allow authenticated users to upload avatars"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'avatars');
 ```
 
-# Start Supabase locally (if not running)
-supabase start
-
-# Apply all migrations in order
-supabase migration up
-This command: Runs all unapplied migrations in the supabase/migrations/ folder.
-
-
-Once migrations complete, confirm the new schema or table is visible:
-```bash
-supabase studio
+### Policy 2: Users can update their own avatars (UPDATE)
+```sql
+-- Let anyone read avatar images
+CREATE POLICY "Allow public read access to avatars"
+ON storage.objects
+FOR SELECT
+TO public
+USING (bucket_id = 'avatars');
 ```
 
+## Step 4: Verify Policies
+1. Go to **Storage > Policies** in the Dashboard.
+2. You should see the new policies listed for the `storage.objects` table.
+3. Test by signing up/logging in as a user and attempting an upload via the app (once integrated).
 
-## 🧱METHOD 2
-# directly copy the code from the migration file and run in supabase sql editor 
-20251027000000_complete_habit_reminder_and_snooze_fields.sql
+## Troubleshooting
+- **Policy Errors**: Check SQL logs in Dashboard > Reports > API.

@@ -10,7 +10,7 @@ type PrebuiltHabit = {
   description: string;
   color: string;
   icon: string;
-  frequency: 'daily' | 'weekly' | 'custom';
+  frequency: 'daily' | 'custom';
   target_days: number;
   category: string;
   is_default: boolean;

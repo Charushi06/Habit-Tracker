@@ -25,7 +25,7 @@ export function PrebuiltHabitForm({ habitId, onClose }: Props) {
   const [description, setDescription] = useState("");
   const [color, setColor] = useState(COLORS[0]);
   const [icon, setIcon] = useState(ICONS[0]);
-  const [frequency, setFrequency] = useState<"daily" | "weekly" | "custom">("daily");
+  const [frequency, setFrequency] = useState<"daily" | "custom">("daily");
   const [targetDays, setTargetDays] = useState(7);
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [saving, setSaving] = useState(false);
@@ -183,11 +183,10 @@ export function PrebuiltHabitForm({ habitId, onClose }: Props) {
             </label>
             <select
               value={frequency}
-              onChange={(e) => setFrequency(e.target.value as "daily" | "weekly" | "custom")}
+              onChange={(e) => setFrequency(e.target.value as "daily" | "custom")}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
               <option value="custom">Custom</option>
             </select>
           </div>

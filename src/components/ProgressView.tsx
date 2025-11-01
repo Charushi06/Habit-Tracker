@@ -6,7 +6,7 @@ export function ProgressView() {
 
   function exportData(format: 'json' | 'csv') {
     const data = habits.map(habit => {
-      const frequency = (habit.frequency as any) === 'weekly' ? 'custom' : habit.frequency;
+      const frequency = habit.frequency === 'weekly' ? 'custom' : habit.frequency;
       const activeDaysList = habit.active_days || [];
       const activeDays = frequency === 'daily' ? 'All' : activeDaysList.join(',');
 
@@ -225,9 +225,9 @@ export function ProgressView() {
     const habit = habits.find(h => h.id === habitId);
     if (!habit) return 0;
 
-    const frequency = (habit.frequency as any) === 'weekly' ? 'custom' : habit.frequency;
-    const activeDays = frequency === 'daily' 
-      ? [0, 1, 2, 3, 4, 5, 6] 
+    const frequency = habit.frequency === 'weekly' ? 'custom' : habit.frequency;
+    const activeDays = frequency === 'daily'
+      ? [0, 1, 2, 3, 4, 5, 6]
       : (habit.active_days || []);
     
     if (activeDays.length === 0) return 0;
@@ -370,9 +370,9 @@ export function ProgressView() {
             const weeklyData = getWeeklyData(habit.id);
 
             // Get active days for this habit
-            const frequency = (habit.frequency as any) === 'weekly' ? 'custom' : habit.frequency;
-            const habitActiveDays = frequency === 'daily' 
-              ? [0, 1, 2, 3, 4, 5, 6] 
+            const frequency = habit.frequency === 'weekly' ? 'custom' : habit.frequency;
+            const habitActiveDays = frequency === 'daily'
+              ? [0, 1, 2, 3, 4, 5, 6]
               : (habit.active_days || []);
 
             return (

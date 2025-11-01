@@ -33,7 +33,7 @@ export function CalendarView() {
 
     // Filter habits active on this specific day
     const activeHabits = habits.filter(h => {
-      const frequency = (h.frequency as any) === 'weekly' ? 'custom' : h.frequency;
+      const frequency = h.frequency === 'weekly' ? 'custom' : h.frequency;
       const activeDays = frequency === 'daily'
         ? [0, 1, 2, 3, 4, 5, 6]
         : (h.active_days || []);
@@ -166,7 +166,7 @@ export function CalendarView() {
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Habit Details ({monthName})</h3>
         <div className="space-y-4">
           {habits.map(habit => {
-            const frequency = (habit.frequency as any) === 'weekly' ? 'custom' : habit.frequency;
+            const frequency = habit.frequency === 'weekly' ? 'custom' : habit.frequency;
             const habitActiveDays = frequency === 'daily'
               ? [0, 1, 2, 3, 4, 5, 6]
               : (habit.active_days || []);
