@@ -22,12 +22,13 @@ const WEEKDAYS = [1, 2, 3, 4, 5]; // Default for custom
 type Props = {
   habitId: string | null;
   onClose: () => void;
+  onHabitCreated?: (habitId: string) => void;
   initial?: Partial<{
     name: string;
     description: string;
     color: string;
     icon: string;
-    frequency: 'daily' | 'weekly' | 'custom';
+    frequency: 'daily' | 'custom';
     target_days: number;
     reminders_enabled: boolean;
     reminder_time: string | null;
@@ -36,7 +37,7 @@ type Props = {
   }>;
 };
 
-export function HabitForm({ habitId, onClose, initial }: Props) {
+export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) {
   const { habits, createHabit, updateHabit } = useHabits();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -46,7 +47,6 @@ export function HabitForm({ habitId, onClose, initial }: Props) {
   // Updated state for frequency
   const [frequency, setFrequency] = useState<'daily' | 'custom'>('daily');
   const [activeDays, setActiveDays] = useState<number[]>(ALL_DAYS); // New state
-
 
   const [category, setCategory] = useState<string[]>([CATEGORIES[0]]);
   const [targetDays, setTargetDays] = useState(7);
@@ -69,14 +69,8 @@ export function HabitForm({ habitId, onClose, initial }: Props) {
         setCategory(habit.category && habit.category.length > 0 ? habit.category : [CATEGORIES[0]]);
         
 
-        // Handle old 'weekly' frequency as 'custom'
-        if (habit.frequency === 'weekly') {
-          setFrequency('custom');
-          setActiveDays(WEEKDAYS); // Default old 'weekly' habits to weekdays
-        } else {
-          setFrequency(habit.frequency as 'daily' | 'custom');
-          setActiveDays(habit.active_days || ALL_DAYS);
-        }
+        setFrequency(habit.frequency as 'daily' | 'custom');
+        setActiveDays(habit.active_days || ALL_DAYS);
         setTargetDays(habit.target_days);
         setRemindersEnabled(habit.reminders_enabled);
         setReminderTime(habit.reminder_time || '09:00');
@@ -88,7 +82,7 @@ export function HabitForm({ habitId, onClose, initial }: Props) {
       if (initial.description !== undefined) setDescription(initial.description);
       if (initial.color) setColor(initial.color);
       if (initial.icon) setIcon(initial.icon);
-      if (initial.frequency) setFrequency(initial.frequency === 'weekly' ? 'custom' : initial.frequency as 'daily' | 'custom');
+      if (initial.frequency) setFrequency(initial.frequency as 'daily' | 'custom');
       if (typeof initial.target_days === 'number') setTargetDays(initial.target_days);
       if (typeof initial.reminders_enabled === 'boolean') setRemindersEnabled(initial.reminders_enabled);
       if (typeof initial.browser_notifications === 'boolean') setBrowserNotifications(initial.browser_notifications);
@@ -170,7 +164,7 @@ export function HabitForm({ habitId, onClose, initial }: Props) {
       email_notifications: emailNotifications,
     });
   } else {
-    await createHabit({
+    const createdHabit = await createHabit({
       name,
       description,
       color,
@@ -187,6 +181,9 @@ export function HabitForm({ habitId, onClose, initial }: Props) {
       snoozed_until: null,
       snooze_duration: null,
     });
+    if (onHabitCreated && createdHabit) {
+      onHabitCreated(createdHabit.id);
+    }
   }
 
   onClose();

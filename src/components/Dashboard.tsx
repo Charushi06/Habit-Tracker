@@ -18,12 +18,14 @@ import {
   Download,
   Globe2,
   User,
+  Target,
 } from 'lucide-react';
 import { HabitForm } from './HabitForm';
 import { CalendarView } from './CalendarView';
 import { ProgressView } from './ProgressView';
 import { NotificationsPanel } from './NotificationsPanel';
 import { HistoryView } from './HistoryView';
+import { Challenges } from './Challenges';
 import { SuggestedHabits, Onboarding } from './Onboarding';
 import { Profile } from './Profile';
 
@@ -35,7 +37,7 @@ import { PrebuiltHabitsManager } from './PrebuiltHabitsManager';
 import { Footer } from './Footer';
 import { TimezoneSettings } from './TimezoneSettings';
 
-type View = 'dashboard' | 'calendar' | 'progress' | 'history' | 'profile';
+type View = 'dashboard' | 'calendar' | 'progress' | 'history' | 'challenges' | 'profile';
 
 const getCategories = (habit: { category?: string[] | null }): string[] => {
   if (habit.category && habit.category.length > 0) {
@@ -190,6 +192,7 @@ export function Dashboard() {
               { id: 'calendar', icon: Calendar, label: 'Calendar' },
               { id: 'progress', icon: TrendingUp, label: 'Progress' },
               { id: 'history', icon: BookOpen, label: 'History' },
+              { id: 'challenges', icon: Target, label: 'Challenges' },
               { id: 'profile', icon: User, label: 'Profile' },
             ].map((tab) => (
               <button
@@ -423,6 +426,7 @@ export function Dashboard() {
           {currentView === 'calendar' && <CalendarView />}
           {currentView === 'progress' && <ProgressView />}
           {currentView === 'history' && <HistoryView />}
+          {currentView === 'challenges' && <Challenges />}
           {currentView === 'profile' && <Profile />}
         </main>
 

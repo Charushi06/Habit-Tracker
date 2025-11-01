@@ -37,9 +37,42 @@ type PrebuiltHabit = {
   target_days: number;
   category: string;
   is_default: boolean;
+  is_template?: boolean;
+  template_id?: string;
   created_at: string;
   updated_at: string;
 };
+
+type PrebuiltChallenge = {
+  id: string;
+  name: string;
+  description: string;
+  template_id: string | null;
+  duration_days: number;
+  goal_type: 'daily_completion' | 'total_count';
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type Challenge = {
+  id: string;
+  user_id: string;
+  prebuilt_challenge_id: string | null;
+  name: string;
+  description: string;
+  linked_habit_id: string[];
+  duration_days: number;
+  goal_type: 'daily_completion' | 'total_count';
+  goal_value: number;
+  start_date: string;
+  end_date: string;
+  status: 'active' | 'completed' | 'failed';
+  created_at: string;
+  updated_at: string;
+};
+
+
 
 type HabitCompletion = {
   id: string;
@@ -63,6 +96,8 @@ type HabitHistory = {
 type HabitsContextType = {
   habits: Habit[];
   prebuiltHabits: PrebuiltHabit[];
+  prebuiltChallenges: PrebuiltChallenge[];
+  challenges: Challenge[];
   completions: HabitCompletion[];
   history: HabitHistory[];
   loading: boolean;
@@ -83,6 +118,14 @@ type HabitsContextType = {
   updatePrebuiltHabit: (id: string, updates: Partial<PrebuiltHabit>) => Promise<void>;
   deletePrebuiltHabit: (id: string) => Promise<void>;
   seedDefaultPrebuiltHabits: () => Promise<void>;
+  // Challenge functions
+  fetchPrebuiltChallenges: () => Promise<PrebuiltChallenge[]>;
+  fetchChallenges: () => Promise<Challenge[]>;
+  createChallenge: (challenge: Omit<Challenge, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<Challenge>;
+  updateChallenge: (id: string, updates: Partial<Challenge>) => Promise<void>;
+  deleteChallenge: (id: string) => Promise<void>;
+  getChallengeProgress: (challengeId: string) => { completed: number; total: number; percentage: number };
+  updateChallengeStatus: (challengeId: string) => Promise<void>;
 };
 
 const HabitsContext = createContext<HabitsContextType | undefined>(undefined);
@@ -101,6 +144,8 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
   const { user, profile } = useAuth();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [prebuiltHabits, setPrebuiltHabits] = useState<PrebuiltHabit[]>([]);
+  const [prebuiltChallenges, setPrebuiltChallenges] = useState<PrebuiltChallenge[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [completions, setCompletions] = useState<HabitCompletion[]>([]);
   const [history, setHistory] = useState<HabitHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,11 +230,15 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
       loadCompletions();
       loadHistory();
       fetchPrebuiltHabits();
+      fetchPrebuiltChallenges();
+      fetchChallenges();
     } else {
       setHabits([]);
       setCompletions([]);
       setHistory([]);
       setPrebuiltHabits([]);
+      setPrebuiltChallenges([]);
+      setChallenges([]);
       notificationManager.cancelAllScheduledNotifications();
       setLoading(false);
     }
@@ -243,7 +292,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
         ...habit,
         user_id: user.id,
         active_days: habit.frequency === 'daily' ? [0,1,2,3,4,5,6] : habit.active_days,
-        target_days: 7,
+        target_days: habit.target_days ?? 7,
       })
       .select()
       .single();
@@ -281,9 +330,39 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
   }
 
   async function deleteHabit(id: string) {
+    if (!user) return;
+
+    // Fetch all challenges for the user
+    const { data: allChallenges, error: queryError } = await supabase
+      .from('challenges')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (queryError) throw queryError;
+
+    // Filter challenges that contain this habit ID (works for both single and array)
+    const challengesToDelete = allChallenges.filter(c =>
+      Array.isArray(c.linked_habit_id) ? c.linked_habit_id.includes(id) : c.linked_habit_id === id
+    );
+
+    // Delete each challenge from DB
+    if (challengesToDelete.length > 0) {
+      const challengeIds = challengesToDelete.map(c => c.id);
+      const { error: deleteError } = await supabase
+        .from('challenges')
+        .delete()
+        .in('id', challengeIds);
+
+      if (deleteError) throw deleteError;
+    }
+
+    // Deactivate the habit
     const { error } = await supabase.from('habits').update({ is_active: false }).eq('id', id);
     if (error) throw error;
+
+    // Update local states
     setHabits(habits.filter(h => h.id !== id));
+    await fetchChallenges(); // Refresh challenges state
     cancelHabitReminder(id);
   }
 
@@ -412,9 +491,145 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     setPrebuiltHabits([...data, ...prebuiltHabits]);
   }
 
+  // ——— Challenge Functions ——— //
+  async function fetchPrebuiltChallenges() {
+    const { data, error } = await supabase
+      .from('prebuilt_challenges')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    setPrebuiltChallenges(data || []);
+    return data || [];
+  }
+
+  async function fetchChallenges() {
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from('challenges')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    setChallenges(data || []);
+    return data || [];
+  }
+
+  async function createChallenge(challenge: Omit<Challenge, 'id' | 'user_id' | 'created_at' | 'updated_at'>) {
+    if (!user) throw new Error('You must be logged in to create a challenge.');
+
+    // If creating from prebuilt challenge, ensure the prebuilt habit exists and add it to linked habits
+    if (challenge.prebuilt_challenge_id) {
+      const prebuiltChallenge = prebuiltChallenges.find(pc => pc.id === challenge.prebuilt_challenge_id);
+      if (prebuiltChallenge && prebuiltChallenge.template_id) {
+        // Fetch the template habit
+        const { data: template, error: templateError } = await supabase
+          .from('prebuilt_habits')
+          .select('*')
+          .eq('template_id', prebuiltChallenge.template_id)
+          .single();
+        if (templateError) throw templateError;
+        if (template) {
+          // Check if user already has this prebuilt habit
+          let linkedHabit = prebuiltHabits.find(ph => ph.template_id === template.template_id && ph.user_id === user.id);
+          if (!linkedHabit) {
+            // Add the template to user's prebuilt habits
+            const { data: newPrebuiltHabit, error: insertError } = await supabase
+              .from('prebuilt_habits')
+              .insert({
+                ...template,
+                user_id: user.id,
+                is_template: false, // User's copy, not template
+                template_id: null, // Clear template_id for user's copy
+              })
+              .select()
+              .single();
+            if (insertError) throw insertError;
+            setPrebuiltHabits([newPrebuiltHabit, ...prebuiltHabits]);
+            linkedHabit = newPrebuiltHabit;
+          }
+          // Add the prebuilt habit to the linked habits if not already included
+          if (linkedHabit && !challenge.linked_habit_id.includes(linkedHabit.id)) {
+            challenge.linked_habit_id = [...challenge.linked_habit_id, linkedHabit.id];
+          }
+        }
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('challenges')
+      .insert({ ...challenge, user_id: user.id })
+      .select()
+      .single();
+    if (error) throw error;
+    setChallenges([data, ...challenges]);
+    return data;
+  }
+
+  async function updateChallenge(id: string, updates: Partial<Challenge>) {
+    const { error } = await supabase.from('challenges').update(updates).eq('id', id);
+    if (error) throw error;
+    setChallenges(challenges.map(c => c.id === id ? { ...c, ...updates } : c));
+  }
+
+  async function deleteChallenge(id: string) {
+    const { error } = await supabase.from('challenges').delete().eq('id', id);
+    if (error) throw error;
+    setChallenges(challenges.filter(c => c.id !== id));
+  }
+
+  function getChallengeProgress(challengeId: string): { completed: number; total: number; percentage: number } {
+    const challenge = challenges.find(c => c.id === challengeId);
+    if (!challenge) return { completed: 0, total: 0, percentage: 0 };
+
+    const startDate = new Date(challenge.start_date);
+    const endDate = new Date(challenge.end_date);
+    const linkedHabits = habits.filter(h => challenge.linked_habit_id.includes(h.id));
+    if (linkedHabits.length === 0) return { completed: 0, total: 0, percentage: 0 };
+
+    let completed = 0;
+    for (const habit of linkedHabits) {
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        if (isCompleted(habit.id, dateStr)) {
+          completed++;
+        }
+      }
+    }
+
+    const percentage = challenge.goal_value > 0 ? Math.round((completed / challenge.goal_value) * 100) : 0;
+    return { completed, total: challenge.goal_value, percentage };
+  }
+
+  async function updateChallengeStatus(challengeId: string) {
+    const challenge = challenges.find(c => c.id === challengeId);
+    if (!challenge || challenge.status !== 'active') return;
+
+    const endDate = new Date(challenge.end_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Only update if challenge has ended
+    if (endDate >= today) return;
+
+    const progress = getChallengeProgress(challengeId);
+    let newStatus: 'active' | 'completed' | 'failed' = 'active';
+
+    if (challenge.goal_type === 'daily_completion') {
+      newStatus = progress.completed >= progress.total ? 'completed' : 'failed';
+    } else if (challenge.goal_type === 'total_count') {
+      newStatus = progress.completed >= progress.total ? 'completed' : 'failed';
+    }
+
+    if (newStatus !== challenge.status) {
+      await updateChallenge(challengeId, { status: newStatus });
+    }
+  }
+
   const value: HabitsContextType = {
     habits,
     prebuiltHabits,
+    prebuiltChallenges,
+    challenges,
     completions,
     history,
     loading,
@@ -435,6 +650,13 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     updatePrebuiltHabit,
     deletePrebuiltHabit,
     seedDefaultPrebuiltHabits,
+    fetchPrebuiltChallenges,
+    fetchChallenges,
+    createChallenge,
+    updateChallenge,
+    deleteChallenge,
+    getChallengeProgress,
+    updateChallengeStatus,
   };
 
   return <HabitsContext.Provider value={value}>{children}</HabitsContext.Provider>;

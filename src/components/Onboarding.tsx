@@ -283,7 +283,7 @@ export function SuggestedHabits({ shouldSeedDefaults = false, onHabitAdded, onSa
             description: initialDraft.description,
             color: initialDraft.color,
             icon: initialDraft.icon,
-            frequency: initialDraft.frequency as 'daily' | 'weekly' | 'custom',
+            frequency: initialDraft.frequency as 'daily' | 'custom',
             target_days: initialDraft.target_days,
             reminders_enabled: false,
             reminder_time: null,
