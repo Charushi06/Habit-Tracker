@@ -305,10 +305,7 @@ export function Onboarding({ onOpenPrebuiltManager }: { onOpenPrebuiltManager?: 
 
   // Only show onboarding modal for users with no habits and when not loading
   // Don't close during saving to allow multiple habits to be added
-  if (loading || (habits.length > 0 && !saving) || dismissed) {
-    return null;
-  }
-
+  
   // Show for new users with no habits
   // Temporarily disabled localStorage check for testing
   // const key = `onboarding_shown_${user?.id ?? 'anon'}`;
@@ -328,6 +325,9 @@ export function Onboarding({ onOpenPrebuiltManager }: { onOpenPrebuiltManager?: 
       return false;
     }
   });
+if (loading || (habits.length > 0 && !saving) || dismissed) {
+    return null;
+  }
 
   // Helper function to mark the modal as shown in localStorage and state
   const markAsShown = () => {
