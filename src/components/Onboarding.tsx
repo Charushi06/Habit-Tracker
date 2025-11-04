@@ -301,6 +301,21 @@ export function Onboarding({ onOpenPrebuiltManager }: { onOpenPrebuiltManager?: 
   const { habits, loading } = useHabits();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  // Only show onboarding modal for users with no habits and when not loading
+  // Don't close during saving to allow multiple habits to be added
+  if (loading || (habits.length > 0 && !saving) || dismissed) {
+    return null;
+  }
+
+  // Show for new users with no habits
+  // Temporarily disabled localStorage check for testing
+  // const key = `onboarding_shown_${user?.id ?? 'anon'}`;
+  // const alreadyShown = typeof window !== 'undefined' && localStorage.getItem(key) === '1';
+  // if (alreadyShown) return null;
+
+  // Mark as shown so it won't appear next time
   const [isManuallyClosed, setIsManuallyClosed] = useState(false);
   const key = `onboarding_shown_${user?.id ?? 'anon'}`;
 
@@ -344,46 +359,45 @@ export function Onboarding({ onOpenPrebuiltManager }: { onOpenPrebuiltManager?: 
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <button
-          onClick={handleClose}
-          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          aria-label="Close onboarding"
-        >
-          <X className="w-5 h-5" />
-        </button>
-        <div className="p-8">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-              <Sparkles className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Welcome to Habit Tracker!
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Let's get you started with your first habit. Choose one that interests you.
-            </p>
-          </div>
+return (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative">
+      <button
+        onClick={() => setDismissed(true)}
+        className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+        title="Close onboarding"
+      >
+        <X className="w-5 h-5" />
+      </button>
 
-          <SuggestedHabits
-            shouldSeedDefaults={true}
-            onHabitAdded={() => {
-              // When a habit is added, mark as shown.
-              // The modal will close on next render because habits.length > 0
-              markAsShown();
-            }}
-            onSavingChange={setSaving}
-          />
-
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              You can always add more habits later from your dashboard
-            </p>
+      <div className="p-8">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
+            <Sparkles className="w-8 h-8 text-white" />
           </div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Welcome to Habit Tracker!
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Let's get you started with your first habit. Choose one that interests you.
+          </p>
+        </div>
+
+        <SuggestedHabits
+          shouldSeedDefaults={true}
+          onHabitAdded={() => {
+            markAsShown();
+          }}
+          onSavingChange={setSaving}
+        />
+
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            You can always add more habits later from your dashboard
+          </p>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
