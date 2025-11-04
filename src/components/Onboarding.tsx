@@ -365,7 +365,7 @@ export function Onboarding({ onOpenPrebuiltManager }: { onOpenPrebuiltManager?: 
         <button
           onClick={() => setDismissed(true)}
           className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-          title="Close onboarding"
+          title="Close onboarding"/>
       <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <button
           onClick={handleClose}
@@ -404,6 +404,7 @@ export function Onboarding({ onOpenPrebuiltManager }: { onOpenPrebuiltManager?: 
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
