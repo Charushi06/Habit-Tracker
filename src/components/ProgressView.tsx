@@ -1,8 +1,38 @@
 import { useHabits } from '../hooks/useHabits';
 import { Download, TrendingUp, Award, Target } from 'lucide-react';
+import { Line, Doughnut, Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { useEffect, useState } from 'react';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 export function ProgressView() {
   const { habits, completions, getStreak } = useHabits();
+  const [animatedValues, setAnimatedValues] = useState<{ [key: string]: number }>({});
 
   function exportData(format: 'json' | 'csv') {
     const data = habits.map(habit => {
@@ -117,10 +147,207 @@ export function ProgressView() {
     ? Math.round(habits.reduce((sum, h) => sum + getCompletionRate(h.id), 0) / habits.length)
     : 0;
 
+  // Animate progress bars on mount
+  useEffect(() => {
+    const values: { [key: string]: number } = {};
+    habits.forEach(habit => {
+      values[habit.id] = 0;
+    });
+    setAnimatedValues(values);
+
+    const timer = setTimeout(() => {
+      const newValues: { [key: string]: number } = {};
+      habits.forEach(habit => {
+        newValues[habit.id] = getCompletionRate(habit.id);
+      });
+      setAnimatedValues(newValues);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [habits, getCompletionRate]);
+
+  // Get data for the last 7 days trend chart
+  const getLast7DaysTrend = () => {
+    const days = [];
+    const counts = [];
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      
+      const dayCompletions = completions.filter(c => c.completed_date === dateStr).length;
+      days.push(dayName);
+      counts.push(dayCompletions);
+    }
+    
+    return { days, counts };
+  };
+
+  const trendData = getLast7DaysTrend();
+
+  // Chart for completion trend
+  const lineChartData = {
+    labels: trendData.days,
+    datasets: [
+      {
+        label: 'Daily Completions',
+        data: trendData.counts,
+        fill: true,
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderColor: 'rgb(59, 130, 246)',
+        tension: 0.4,
+        pointBackgroundColor: 'rgb(59, 130, 246)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      },
+    ],
+  };
+
+  const lineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        cornerRadius: 8,
+        titleColor: '#fff',
+        bodyColor: '#fff',
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1,
+          color: '#9ca3af',
+        },
+        grid: {
+          color: 'rgba(156, 163, 175, 0.1)',
+        },
+      },
+      x: {
+        ticks: {
+          color: '#9ca3af',
+        },
+        grid: {
+          display: false,
+        },
+      },
+    },
+  };
+
+  // Doughnut chart for habit distribution
+  const habitCompletionData = {
+    labels: habits.map(h => h.name),
+    datasets: [
+      {
+        data: habits.map(h => completions.filter(c => c.habit_id === h.id).length),
+        backgroundColor: habits.map(h => h.color),
+        borderColor: '#fff',
+        borderWidth: 2,
+        hoverOffset: 10,
+      },
+    ],
+  };
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right' as const,
+        labels: {
+          color: '#9ca3af',
+          padding: 15,
+          font: {
+            size: 12,
+          },
+          usePointStyle: true,
+          pointStyle: 'circle',
+        },
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        cornerRadius: 8,
+        titleColor: '#fff',
+        bodyColor: '#fff',
+      },
+    },
+  };
+
+  // Bar chart for completion rates
+  const completionRatesData = {
+    labels: habits.map(h => h.name.length > 15 ? h.name.substring(0, 15) + '...' : h.name),
+    datasets: [
+      {
+        label: 'Completion Rate (%)',
+        data: habits.map(h => getCompletionRate(h.id)),
+        backgroundColor: habits.map(h => h.color),
+        borderRadius: 8,
+        maxBarThickness: 50,
+      },
+    ],
+  };
+
+  const barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        cornerRadius: 8,
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        callbacks: {
+          label: function(context: { parsed: { y: number | null } }) {
+            return `Completion Rate: ${context.parsed.y ?? 0}%`;
+          }
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 100,
+        ticks: {
+          callback: function(value: string | number) {
+            return value + '%';
+          },
+          color: '#9ca3af',
+        },
+        grid: {
+          color: 'rgba(156, 163, 175, 0.1)',
+        },
+      },
+      x: {
+        ticks: {
+          color: '#9ca3af',
+        },
+        grid: {
+          display: false,
+        },
+      },
+    },
+  };
+
   return (
     <div className="space-y-6">
+      {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 transform transition-all hover:scale-105">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
               <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -132,7 +359,7 @@ export function ProgressView() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 transform transition-all hover:scale-105">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
               <Award className="w-6 h-6 text-orange-600 dark:text-orange-400" />
@@ -144,7 +371,7 @@ export function ProgressView() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 transform transition-all hover:scale-105">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -157,6 +384,45 @@ export function ProgressView() {
         </div>
       </div>
 
+      {/* Charts Section */}
+      {habits.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Completion Trend Chart */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              7-Day Completion Trend
+            </h3>
+            <div style={{ height: '250px' }}>
+              <Line data={lineChartData} options={lineChartOptions} />
+            </div>
+          </div>
+
+          {/* Habit Distribution Chart */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Target className="w-5 h-5 text-purple-600" />
+              Completion Distribution
+            </h3>
+            <div style={{ height: '250px' }}>
+              <Doughnut data={habitCompletionData} options={doughnutOptions} />
+            </div>
+          </div>
+
+          {/* Completion Rates Chart */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 lg:col-span-2">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Award className="w-5 h-5 text-green-600" />
+              Completion Rates by Habit (Last 30 Days)
+            </h3>
+            <div style={{ height: '300px' }}>
+              <Bar data={completionRatesData} options={barChartOptions} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Habit Statistics Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white">Habit Statistics</h3>
@@ -218,6 +484,24 @@ export function ProgressView() {
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
                     <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Completions</p>
                     <p className="text-xl font-bold text-gray-900 dark:text-white">{totalHabitCompletions}</p>
+                  </div>
+                </div>
+
+                {/* Animated Progress Bar */}
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Progress</p>
+                    <p className="text-xs font-semibold text-gray-900 dark:text-white">{completionRate}%</p>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                    <div 
+                      className="h-full rounded-full transition-all duration-1000 ease-out"
+                      style={{ 
+                        width: `${animatedValues[habit.id] || 0}%`,
+                        backgroundColor: habit.color,
+                        boxShadow: `0 0 10px ${habit.color}40`
+                      }}
+                    />
                   </div>
                 </div>
 
