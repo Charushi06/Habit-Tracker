@@ -1,8 +1,13 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { HabitsProvider } from './contexts/HabitsContext';
+import { ToastProvider } from './components/ToastProvider';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import { NotFound } from './pages/NotFound';
 
 function AppContent() {
   const { user, loading, profile } = useAuth();
@@ -17,18 +22,28 @@ function AppContent() {
     );
   }
 
-  return user ? <Dashboard /> : <Auth />;
+  return (
+    <Routes>
+      <Route path="/" element={user ? <Dashboard /> : <Auth />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <HabitsProvider>
-          <AppContent />
-        </HabitsProvider>
-      </ThemeProvider>
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <ThemeProvider>
+          <HabitsProvider>
+            <ToastProvider />
+            <AppContent />
+          </HabitsProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 
