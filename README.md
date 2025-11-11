@@ -42,9 +42,6 @@ A modern, open-source habit tracker built with **React**, **TypeScript**, **Vite
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Environment Setup](#environment-setup)
-- [Database Setup](#database-setup)
-  - [Running Migrations](#running-migrations)
-- [Development](#development)
   - [Project Structure](#project-structure)
   - [Available Scripts](#available-scripts)
 - [Contributing](#contributing)
@@ -96,149 +93,6 @@ A modern, open-source habit tracker built with **React**, **TypeScript**, **Vite
 
 ---
 
-## �️ Database Setup
-
-### Understanding the Database Schema
-
-The application uses three main tables:
-
-- **`profiles`** - User information (name, email, preferences)
-- **`habits`** - Habit definitions (name, icon, color, frequency, reminders)
-- **`habit_completions`** - Daily completion tracking
-- **`habit_history`** - Audit log of all habit changes (create, update, delete)
-
-All tables have Row-Level Security (RLS) policies to ensure users can only access their own data.
-
-### Running Migrations
-
-**⚠️ IMPORTANT:** Migrations must be run in order when setting up the database.
-
-#### Method 1: Using Supabase SQL Editor
-
-1. **Open SQL Editor:**
-   - Go to your Supabase Dashboard
-   - Navigate to SQL Editor in the left sidebar
-
-2. **Run migrations in order:**
-
-   **Migration 1:** Base Schema (Profiles, Habits, Completions)
-   ```bash
-   supabase/migrations/20251021073119_create_habit_tracker_schema.sql
-   ```
-   - Copy the entire file content
-   - Paste into SQL Editor
-   - Click "Run" (bottom right)
-   - Verify success message
-
-   **Migration 2:** Reminders and Snooze Features
-   ```bash
-   supabase/migrations/20251027000000_complete_habit_reminder_and_snooze_fields.sql
-   ```
-   - Repeat the same process
-
-   **Migration 3:** History Tracking
-   ```bash
-   supabase/migrations/20251029000000_add_habit_history_table.sql
-   ```
-   - Repeat the same process
-
-3. **Verify migrations:**
-   - Go to Table Editor
-   - Confirm all tables exist: `profiles`, `habits`, `habit_completions`, `habit_history`
-   - Check Database → Functions for triggers
-
-#### Method 2: Using Supabase CLI (For Development)
-
-1. **Install Supabase CLI:**
-   ```bash
-   npm install -g supabase
-   ```
-
-2. **Login to Supabase:**
-   ```bash
-   supabase login
-   ```
-
-3. **Link to your project:**
-   ```bash
-   supabase link --project-ref your-project-ref
-   ```
-
-4. **Run all migrations:**
-   ```bash
-   supabase db push
-   ```
-
-#### Migration Checklist
-
-After running migrations, verify:
-- ✅ All tables created: `profiles`, `habits`, `habit_completions`, `habit_history`
-- ✅ RLS policies enabled on all tables
-- ✅ Triggers created: `habit_creation_trigger`, `habit_update_trigger`, `habit_deletion_trigger`
-- ✅ Indexes created for performance
-
-### Monitoring
-
-#### Database Health
-
-1. **Check Table Editor:**
-   - Verify data is being stored correctly
-   - Monitor table sizes
-
-2. **Review Logs:**
-   - Database → Logs
-   - Check for errors or slow queries
-
-3. **Monitor API Usage:**
-   - Settings → Usage
-   - Track API requests, database size, bandwidth
-
-#### Application Monitoring
-
-1. **Netlify Analytics:**
-   - View deployment history
-   - Monitor build times
-   - Check error logs
-
-2. **User Feedback:**
-   - Monitor issues on GitHub
-   - Check for reported bugs
-
-#### Security Checklist
-
-- ✅ RLS policies enabled on all tables
-- ✅ Anon key used in frontend (never use service_role key)
-- ✅ Environment variables properly configured
-- ✅ HTTPS enabled on deployed site
-- ✅ Database backups configured (automatic in Supabase)
-
-#### Adding a New Migration
-
-When a contributor adds a new feature requiring database changes:
-
-1. **Review the migration SQL file** in `supabase/migrations/`
-2. **Test in development** first
-3. **Run in production** using SQL Editor
-4. **Verify** the changes work correctly
-5. **Document** any breaking changes
-
-#### Rolling Back Changes
-
-If a deployment causes issues:
-
-1. **Netlify:** Click "Rollback to this deploy" on previous working deployment
-2. **Database:** Restore from Supabase automatic backups (Settings → Database → Backups)
-
-#### Updating Environment Variables
-
-1. **Netlify:** Site settings → Environment variables → Edit
-2. **Vercel:** Project settings → Environment Variables → Edit
-3. **Trigger redeploy** after changing variables
-
----
-
-## Development
-
 ### Project Structure
 
 ```
@@ -265,13 +119,9 @@ Habit-Tracker/
 └── package.json
 ```
 
-### Available Scripts
+### Scripts
 
 - `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Run TypeScript type checking
 
 ### Tech Stack
 
@@ -303,13 +153,13 @@ Contributions are welcome! Please follow these steps:
 
 ---
 
-## 📄 License
+## License
 
 This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with [Supabase](https://supabase.com/)
 - Icons from [Lucide](https://lucide.dev/)
@@ -317,4 +167,3 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-**Made with ❤️ by the open-source community**
