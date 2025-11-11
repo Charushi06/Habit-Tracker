@@ -7,6 +7,7 @@ import {
   Calendar,
   TrendingUp,
   Menu,
+  X,
   Moon,
   Sun,
   LogOut,
@@ -58,6 +59,7 @@ export function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showTzSettings, setShowTzSettings] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false); // New state for mobile menu
   const [showPrebuiltManager, setShowPrebuiltManager] = useState(false);
   const [filterCategory, setFilterCategory] = useState('All');
 
@@ -84,7 +86,10 @@ export function Dashboard() {
     }
   };
 
-
+  const handleSelectView = (view: View) => {
+    setCurrentView(view);
+    setShowMobileMenu(false); // Close menu on selection
+  };
 
   if (loading) {
     return (
@@ -95,9 +100,6 @@ export function Dashboard() {
   }
 
   // Filter habits to only those active today
-  // --- MODIFIED: Filtering Logic ---
-
-  // 1. Get all unique categories (flatMap handles arrays)
   const allCategories = ['All', ...Array.from(new Set(habits.flatMap(getCategories)))].sort();
 
   // 2. Filter habits active for today
@@ -118,11 +120,21 @@ export function Dashboard() {
   const completedToday = filteredHabitsToday.filter((h) => isCompleted(h.id, today)).length;
   const totalActive = filteredHabitsToday.length;
   const reminderCount = habits.filter((h) => h.reminders_enabled && h.reminder_time).length;
+
+  const navTabs = [
+    { id: 'dashboard', icon: Menu, label: 'Dashboard' },
+    { id: 'calendar', icon: Calendar, label: 'Calendar' },
+    { id: 'progress', icon: TrendingUp, label: 'Progress' },
+    { id: 'history', icon: BookOpen, label: 'History' },
+    { id: 'challenges', icon: Target, label: 'Challenges' },
+    { id: 'profile', icon: User, label: 'Profile' },
+  ];
+
   return (
     <div className={isDarkMode ? 'dark' : ''}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
         {/* Navbar */}
-        <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center gap-3">
@@ -135,6 +147,15 @@ export function Dashboard() {
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Mobile Menu Button */}
+                <button
+                  onClick={() => setShowMobileMenu(!showMobileMenu)}
+                  className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors md:hidden"
+                  aria-label="Toggle navigation menu"
+                >
+                  {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                </button>
+
                 {/* Notifications */}
                 <div className="relative">
                   <button
@@ -169,8 +190,6 @@ export function Dashboard() {
                   {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
 
-
-
                 {/* Logout */}
                 <button
                   onClick={() => signOut()}
@@ -182,19 +201,33 @@ export function Dashboard() {
               </div>
             </div>
           </div>
+          
+          {/* Mobile Tabs Dropdown */}
+          {showMobileMenu && (
+            <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 absolute w-full shadow-lg">
+              <div className="flex flex-col p-2 space-y-1">
+                {navTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleSelectView(tab.id as View)}
+                    className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg font-medium transition-colors ${currentView === tab.id
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
+                  >
+                    <tab.icon className="w-4 h-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </nav>
 
-        {/* Tabs Navigation */}
+        {/* Tabs Navigation (Desktop) */}
         <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full mb-24">
-          <div className="flex gap-2 mb-8 border-b border-gray-200 dark:border-gray-700">
-            {[
-              { id: 'dashboard', icon: Menu, label: 'Dashboard' },
-              { id: 'calendar', icon: Calendar, label: 'Calendar' },
-              { id: 'progress', icon: TrendingUp, label: 'Progress' },
-              { id: 'history', icon: BookOpen, label: 'History' },
-              { id: 'challenges', icon: Target, label: 'Challenges' },
-              { id: 'profile', icon: User, label: 'Profile' },
-            ].map((tab) => (
+          <div className="hidden md:flex gap-2 mb-8 border-b border-gray-200 dark:border-gray-700">
+            {navTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setCurrentView(tab.id as View)}
@@ -263,17 +296,17 @@ export function Dashboard() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowExportModal(true)}
-                    className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                    className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
                   >
                     <Download className="w-5 h-5" />
-                    <span>Export Data</span>
+                    <span className="hidden sm:inline">Export Data</span>
                   </button>
                   <button
                     onClick={() => setShowHabitForm(true)}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
                   >
                     <Plus className="w-5 h-5" />
-                    <span>Add Habit</span>
+                    <span className="hidden sm:inline">Add Habit</span>
                   </button>
                 </div>
               </div>
