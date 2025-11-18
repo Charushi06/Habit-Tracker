@@ -72,6 +72,29 @@ type Challenge = {
   updated_at: string;
 };
 
+type PredefinedBadge = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  category: 'milestones' | 'streaks' | 'consistency' | 'challenges' | 'special';
+  trigger_type: 'total_habits' | 'total_completions' | 'longest_streak' | 'completion_rate' | 'challenge_completed' | 'days_active' | 'habit_created';
+  trigger_value: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type UserBadge = {
+  id: string;
+  user_id: string;
+  badge_id: string;
+  earned_at: string;
+  created_at: string;
+  badge?: PredefinedBadge;
+};
+
 
 
 type HabitCompletion = {
@@ -126,6 +149,21 @@ type HabitsContextType = {
   deleteChallenge: (id: string) => Promise<void>;
   getChallengeProgress: (challengeId: string) => { completed: number; total: number; percentage: number };
   updateChallengeStatus: (challengeId: string) => Promise<void>;
+  // Badge functions
+  predefinedBadges: PredefinedBadge[];
+  userBadges: UserBadge[];
+  fetchPredefinedBadges: () => Promise<PredefinedBadge[]>;
+  fetchUserBadges: () => Promise<UserBadge[]>;
+  checkAndAwardBadges: () => Promise<void>;
+  awardBadge: (badgeId: string) => Promise<void>;
+  getUserStats: () => {
+    totalHabits: number;
+    totalCompletions: number;
+    longestStreak: number;
+    completionRate: number;
+    completedChallenges: number;
+    daysActive: number;
+  };
 };
 
 const HabitsContext = createContext<HabitsContextType | undefined>(undefined);
@@ -148,7 +186,10 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [completions, setCompletions] = useState<HabitCompletion[]>([]);
   const [history, setHistory] = useState<HabitHistory[]>([]);
+  const [predefinedBadges, setPredefinedBadges] = useState<PredefinedBadge[]>([]);
+  const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [badgesLoaded, setBadgesLoaded] = useState(false);
 
   const loadHabits = useCallback(async () => {
     try {
@@ -168,18 +209,16 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
 
   const loadCompletions = useCallback(async () => {
     try {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const { data, error } = await supabase
         .from('habit_completions')
         .select('*')
-        .gte('completed_date', thirtyDaysAgo.toISOString().split('T')[0]);
+        .eq('user_id', user?.id);
       if (error) throw error;
       setCompletions(data || []);
     } catch (error) {
       console.error('Error loading completions:', error);
     }
-  }, []);
+  }, [user?.id]);
 
   const loadHistory = useCallback(async () => {
     if (!user) return;
@@ -194,6 +233,111 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
       console.error('Error loading history:', error);
     }
   }, [user]);
+
+  // ——— Badge Functions ——— //
+  async function fetchPredefinedBadges() {
+    if (badgesLoaded) return predefinedBadges;
+    const { data, error } = await supabase
+      .from('predefined_badges')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    setPredefinedBadges(data || []);
+    setBadgesLoaded(true);
+    return data || [];
+  }
+
+  async function fetchUserBadges() {
+    if (!user || badgesLoaded) return userBadges;
+    const { data, error } = await supabase
+      .from('user_badges')
+      .select(`
+        *,
+        badge:predefined_badges(*)
+      `)
+      .eq('user_id', user.id)
+      .order('earned_at', { ascending: false });
+    if (error) throw error;
+    setUserBadges(data || []);
+    return data || [];
+  }
+
+  async function checkAndAwardBadges(habitsOverride?: Habit[], completionsOverride?: HabitCompletion[], challengesOverride?: Challenge[]) {
+    if (!user) return;
+    const stats = getUserStats(habitsOverride, completionsOverride, challengesOverride);
+    const unearnedBadges = predefinedBadges.filter(badge =>
+      !userBadges.some(ub => ub.badge_id === badge.id)
+    );
+
+    for (const badge of unearnedBadges) {
+      let shouldAward = false;
+      switch (badge.trigger_type) {
+        case 'total_habits':
+          shouldAward = stats.totalHabits >= badge.trigger_value;
+          break;
+        case 'total_completions':
+          shouldAward = stats.totalCompletions >= badge.trigger_value;
+          break;
+        case 'longest_streak':
+          shouldAward = stats.longestStreak >= badge.trigger_value;
+          break;
+        case 'completion_rate':
+          shouldAward = stats.completionRate >= badge.trigger_value;
+          break;
+        case 'challenge_completed':
+          shouldAward = stats.completedChallenges >= badge.trigger_value;
+          break;
+        case 'days_active':
+          shouldAward = stats.daysActive >= badge.trigger_value;
+          break;
+        case 'habit_created':
+          shouldAward = stats.totalHabits >= badge.trigger_value;
+          break;
+      }
+      if (shouldAward) {
+        await awardBadge(badge.id);
+      }
+    }
+  }
+
+  async function awardBadge(badgeId: string) {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('user_badges')
+      .insert({ user_id: user.id, badge_id: badgeId })
+      .select()
+      .single();
+    if (error) throw error;
+    setUserBadges([data, ...userBadges]);
+  }
+
+  function getUserStats(habitsOverride?: Habit[], completionsOverride?: HabitCompletion[], challengesOverride?: Challenge[]) {
+    const habitsToUse = habitsOverride || habits;
+    const completionsToUse = completionsOverride || completions;
+    const challengesToUse = challengesOverride || challenges;
+
+    const totalHabits = habitsToUse.length;
+    const totalCompletions = completionsToUse.length;
+    const longestStreak = Math.max(...habitsToUse.map(h => getStreak(h.id)), 0);
+
+    // Calculate completion rate over the last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentCompletions = completionsToUse.filter(c => new Date(c.completed_date) >= thirtyDaysAgo);
+    const completionRate = totalHabits > 0 ? Math.round((recentCompletions.length / (totalHabits * 30)) * 100) : 0;
+
+    const completedChallenges = challengesToUse.filter(c => c.status === 'completed').length;
+    const daysActive = new Set(completionsToUse.map(c => c.completed_date)).size;
+    return {
+      totalHabits,
+      totalCompletions,
+      longestStreak,
+      completionRate,
+      completedChallenges,
+      daysActive,
+    };
+  }
 
   const setupNotifications = useCallback(() => {
     if (!notificationManager.isSupported()) return;
@@ -232,6 +376,18 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
       fetchPrebuiltHabits();
       fetchPrebuiltChallenges();
       fetchChallenges();
+      fetchPredefinedBadges();
+      fetchUserBadges();
+      // Update challenge statuses and check for badges after initial load
+      setTimeout(async () => {
+        // Update status for all active challenges
+        const activeChallenges = challenges.filter(c => c.status === 'active');
+        for (const challenge of activeChallenges) {
+          await updateChallengeStatus(challenge.id);
+        }
+        // Then check and award badges
+        await checkAndAwardBadges();
+      }, 1000); // Delay to ensure data is loaded
     } else {
       setHabits([]);
       setCompletions([]);
@@ -239,6 +395,8 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
       setPrebuiltHabits([]);
       setPrebuiltChallenges([]);
       setChallenges([]);
+      setPredefinedBadges([]);
+      setUserBadges([]);
       notificationManager.cancelAllScheduledNotifications();
       setLoading(false);
     }
@@ -298,6 +456,8 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
       .single();
     if (error) throw error;
     setHabits([data, ...habits]);
+    // Check for badges after creating habit
+    await checkAndAwardBadges();
     return data;
   }
 
@@ -369,10 +529,12 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
   async function toggleCompletion(habitId: string, date: string) {
     if (!user) return;
     const existing = completions.find(c => c.habit_id === habitId && c.completed_date === date);
+    let newCompletions: HabitCompletion[];
     if (existing) {
       const { error } = await supabase.from('habit_completions').delete().eq('id', existing.id);
       if (error) throw error;
-      setCompletions(completions.filter(c => c.id !== existing.id));
+      newCompletions = completions.filter(c => c.id !== existing.id);
+      setCompletions(newCompletions);
     } else {
       const { data, error } = await supabase
         .from('habit_completions')
@@ -380,8 +542,16 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
         .select()
         .single();
       if (error) throw error;
-      setCompletions([...completions, data]);
+      newCompletions = [...completions, data];
+      setCompletions(newCompletions);
     }
+    // Update challenge statuses after completion change
+    const activeChallenges = challenges.filter(c => c.status === 'active');
+    for (const challenge of activeChallenges) {
+      await updateChallengeStatus(challenge.id);
+    }
+    // Check for badges after completion change with updated completions
+    await checkAndAwardBadges(undefined, newCompletions, undefined);
   }
 
   function isCompleted(habitId: string, date: string): boolean {
@@ -587,11 +757,23 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     if (linkedHabits.length === 0) return { completed: 0, total: 0, percentage: 0 };
 
     let completed = 0;
-    for (const habit of linkedHabits) {
-      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        const dateStr = d.toISOString().split('T')[0];
-        if (isCompleted(habit.id, dateStr)) {
-          completed++;
+    if (challenge.goal_type === 'total_count') {
+      // For total_count, count all completion records within the date range
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      completed = completions.filter(c =>
+        linkedHabits.some(h => h.id === c.habit_id) &&
+        c.completed_date >= startDateStr &&
+        c.completed_date <= endDateStr
+      ).length;
+    } else {
+      // For daily_completion, count the number of days completed
+      for (const habit of linkedHabits) {
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          const dateStr = d.toISOString().split('T')[0];
+          if (isCompleted(habit.id, dateStr)) {
+            completed++;
+          }
         }
       }
     }
@@ -600,7 +782,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     return { completed, total: challenge.goal_value, percentage };
   }
 
-  async function updateChallengeStatus(challengeId: string) {
+  async function updateChallengeStatus(challengeId: string): Promise<void> {
     const challenge = challenges.find(c => c.id === challengeId);
     if (!challenge || challenge.status !== 'active') return;
 
@@ -608,21 +790,21 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Only update if challenge has ended
-    if (endDate >= today) return;
-
     const progress = getChallengeProgress(challengeId);
     let newStatus: 'active' | 'completed' | 'failed' = 'active';
 
-    if (challenge.goal_type === 'daily_completion') {
-      newStatus = progress.completed >= progress.total ? 'completed' : 'failed';
-    } else if (challenge.goal_type === 'total_count') {
-      newStatus = progress.completed >= progress.total ? 'completed' : 'failed';
+    if (progress.completed >= progress.total) {
+      newStatus = 'completed';
+    } else if (endDate < today) {
+      newStatus = 'failed';
     }
 
     if (newStatus !== challenge.status) {
       await updateChallenge(challengeId, { status: newStatus });
+      // Check for badges after challenge status update
+      await checkAndAwardBadges();
     }
+    return;
   }
 
   const value: HabitsContextType = {
@@ -657,6 +839,14 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     deleteChallenge,
     getChallengeProgress,
     updateChallengeStatus,
+    // Badge functions
+    predefinedBadges,
+    userBadges,
+    fetchPredefinedBadges,
+    fetchUserBadges,
+    checkAndAwardBadges,
+    awardBadge,
+    getUserStats,
   };
 
   return <HabitsContext.Provider value={value}>{children}</HabitsContext.Provider>;

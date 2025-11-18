@@ -23,6 +23,7 @@ export function Profile() {
   });
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [hoveredAchievement, setHoveredAchievement] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Calculate habit statistics
@@ -126,62 +127,23 @@ export function Profile() {
     };
   }, [habits, completions]);
 
-  // Calculate achievements
+  const { predefinedBadges, userBadges } = useHabits();
+
+  // Calculate achievements from all predefined badges
   const achievements = useMemo(() => {
-    const earnedAchievements = [];
-
-    if (stats.totalHabits >= 1) {
-      earnedAchievements.push({
-        id: 'first-habit',
-        title: 'First Steps',
-        description: 'Created your first habit',
-        icon: '🎯',
-        color: 'bg-blue-500',
-      });
-    }
-
-    if (stats.totalCompletions >= 10) {
-      earnedAchievements.push({
-        id: 'ten-completions',
-        title: 'Getting Started',
-        description: 'Completed 10 habits',
-        icon: '⭐',
-        color: 'bg-yellow-500',
-      });
-    }
-
-    if (stats.longestStreak >= 7) {
-      earnedAchievements.push({
-        id: 'week-streak',
-        title: 'Week Warrior',
-        description: 'Maintained a 7-day streak',
-        icon: '🔥',
-        color: 'bg-orange-500',
-      });
-    }
-
-    if (stats.completionRate >= 80) {
-      earnedAchievements.push({
-        id: 'consistency-master',
-        title: 'Consistency Master',
-        description: '80% completion rate',
-        icon: '👑',
-        color: 'bg-purple-500',
-      });
-    }
-
-    if (stats.totalHabits >= 5) {
-      earnedAchievements.push({
-        id: 'habit-master',
-        title: 'Habit Master',
-        description: 'Created 5 or more habits',
-        icon: '🏆',
-        color: 'bg-green-500',
-      });
-    }
-
-    return earnedAchievements;
-  }, [stats]);
+    return predefinedBadges.map(badge => {
+      const userBadge = userBadges.find(ub => ub.badge_id === badge.id);
+      return {
+        id: badge.id,
+        title: badge.name,
+        description: badge.description,
+        icon: badge.icon,
+        color: badge.color,
+        earned: !!userBadge,
+        earnedAt: userBadge?.earned_at,
+      };
+    });
+  }, [predefinedBadges, userBadges]);
 
   // Get recent activity
   const recentActivity = useMemo(() => {
@@ -654,6 +616,53 @@ export function Profile() {
             <div className="text-sm text-gray-600 dark:text-gray-400">Longest Streak</div>
           </div>
         </div>
+      </div>
+
+      {/* Achievements */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+          <span className="text-2xl">🏆</span>
+          Achievements
+        </h2>
+
+        {achievements.filter(a => a.earned).length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 relative">
+            {achievements.filter(a => a.earned).map((achievement) => (
+              <div
+                key={achievement.id}
+                className="flex flex-col items-center text-center relative"
+                onMouseEnter={() => setHoveredAchievement(achievement.id)}
+                onMouseLeave={() => setHoveredAchievement(null)}
+              >
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-2 bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg"
+                >
+                  {achievement.icon}
+                </div>
+                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  {achievement.title}
+                </div>
+                {hoveredAchievement === achievement.id && (
+                  <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-sm rounded-lg px-3 py-2 shadow-lg z-50 whitespace-nowrap pointer-events-none">
+                    <div className="font-semibold">{achievement.title}</div>
+                    <div className="text-gray-300">{achievement.description}</div>
+                    {achievement.earnedAt && (
+                      <div className="text-gray-400 text-xs mt-1">
+                        Earned: {new Date(achievement.earnedAt).toLocaleDateString()}
+                      </div>
+                    )}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <span className="text-4xl mb-4 block">🎯</span>
+            <p className="text-gray-600 dark:text-gray-400">No achievements yet. Keep building habits to unlock badges!</p>
+          </div>
+        )}
       </div>
 
       {/* Statistics Charts */}
