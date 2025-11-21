@@ -17,6 +17,7 @@ import {
 import { useEffect, useState } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { ExportModal } from './ExportModal';
 
 // Register ChartJS components
 ChartJS.register(
@@ -35,6 +36,7 @@ ChartJS.register(
 export function ProgressView() {
   const { habits, completions, getStreak } = useHabits();
   const [animatedValues, setAnimatedValues] = useState<{ [key: string]: number }>({});
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // --- EXISTING JSON/CSV EXPORT LOGIC ---
   function exportData(format: 'json' | 'csv') {
@@ -437,31 +439,6 @@ export function ProgressView() {
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white">Habit Statistics</h3>
-          <div className="flex gap-2">
-            <button
-              onClick={() => exportData('json')}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-            >
-              <Download className="w-4 h-4" />
-              <span>JSON</span>
-            </button>
-            <button
-              onClick={() => exportData('csv')}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-            >
-              <Download className="w-4 h-4" />
-              <span>CSV</span>
-            </button>
-            {/* --- NEW BUTTON --- */}
-            <button
-              onClick={exportPDF}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Export PDF</span>
-            </button>
-            {/* ------------------ */}
-          </div>
         </div>
 
         <div className="space-y-6">
@@ -556,6 +533,27 @@ export function ProgressView() {
           })}
         </div>
       </div>
+      
+      {/* NEW: Export Data Button Section */}
+      <div className="flex justify-center pb-8">
+        <button
+          onClick={() => setShowExportModal(true)}
+          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+        >
+          <Download className="w-5 h-5" />
+          <span className="font-medium">Export Your Habit Data (as a PDF, a CSV or a JSON file)</span>
+        </button>
+      </div>
+
+      {/* NEW: Export Modal */}
+      {/* IMPORTANT: You must update ExportModal.tsx to accept these props! */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExportJSON={() => exportData('json')}
+        onExportCSV={() => exportData('csv')}
+        onExportPDF={exportPDF}
+      />
     </div>
   );
 }
