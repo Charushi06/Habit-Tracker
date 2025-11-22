@@ -1,5 +1,5 @@
-import { useHabits } from '../hooks/useHabits';
-import { Download, TrendingUp, Award, Target } from 'lucide-react';
+import { useHabits, Habit } from '../hooks/useHabits'; // Added Habit type
+import { Download, TrendingUp, Award, Target, FileText } from 'lucide-react';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -15,6 +15,11 @@ import {
   Filler
 } from 'chart.js';
 import { useEffect, useState } from 'react';
+// import jsPDF from 'jspdf'; // REMOVED: Now used in external utility
+// import autoTable from 'jspdf-autotable'; // REMOVED: Now used in external utility
+import { ExportModal } from './ExportModal';
+// --- NEW IMPORT ---
+import { generateHabitsPDF } from '../utils/pdfExport';
 
 // Register ChartJS components
 ChartJS.register(
@@ -33,7 +38,9 @@ ChartJS.register(
 export function ProgressView() {
   const { habits, completions, getStreak } = useHabits();
   const [animatedValues, setAnimatedValues] = useState<{ [key: string]: number }>({});
+  const [showExportModal, setShowExportModal] = useState(false);
 
+  // --- EXISTING JSON/CSV EXPORT LOGIC ---
   function exportData(format: 'json' | 'csv') {
     const data = habits.map(habit => {
       const frequency = habit.frequency === 'weekly' ? 'custom' : habit.frequency;
@@ -67,7 +74,7 @@ export function ProgressView() {
     } else {
       const headers = ['Name', 'Description', 'Frequency', 'Active Days (0=Sun)', 'Streak', 'Total Completions', 'Created At'];
       const rows = data.map(d => [
-        `"${d.name.replace(/"/g, '""')}"`, // Handle potential commas in names
+        `"${d.name.replace(/"/g, '""')}"`, 
         `"${d.description.replace(/"/g, '""')}"`,
         d.frequency,
         d.active_days_csv,
@@ -79,6 +86,26 @@ export function ProgressView() {
       const blob = new Blob([csv], { type: 'text/csv' });
       downloadFile(blob, 'habit-tracker-data.csv');
     }
+  }
+
+  // --- REPLACED PDF EXPORT LOGIC ---
+  async function exportPDF() {
+    // Augment habit data with completion dates, which the PDF generator expects
+    const habitsWithCompletions: Habit[] = habits.map(habit => ({
+      ...habit,
+      completed_dates: completions
+        .filter(c => c.habit_id === habit.id)
+        .map(c => c.completed_date),
+    }));
+
+    // Call the external utility function
+    await generateHabitsPDF({
+      habits: habitsWithCompletions,
+      userName: 'User',
+      dateRange: undefined,
+      includeStreak: true,
+      includeProgress: true,
+    });
   }
 
   function downloadFile(blob: Blob, filename: string) {
@@ -104,7 +131,6 @@ export function ProgressView() {
     return days;
   }
 
-  // Updated completion rate logic
   function getCompletionRate(habitId: string): number {
     const habit = habits.find(h => h.id === habitId);
     if (!habit) return 0;
@@ -120,34 +146,30 @@ export function ProgressView() {
     let completedInPeriod = 0;
     const checkDate = new Date();
 
-    for (let i = 0; i < 30; i++) { // Check last 30 days
+    for (let i = 0; i < 30; i++) { 
       const dayOfWeek = checkDate.getDay();
       if (activeDays.includes(dayOfWeek)) {
-        // This was an active day
         activeDaysInPeriod++;
         const dateStr = checkDate.toISOString().split('T')[0];
         if (completions.some(c => c.habit_id === habitId && c.completed_date === dateStr)) {
           completedInPeriod++;
         }
       }
-      // Move to the previous day
       checkDate.setDate(checkDate.getDate() - 1);
     }
     
     return activeDaysInPeriod > 0 
       ? Math.round((completedInPeriod / activeDaysInPeriod) * 100) 
-      : 0; // Avoid division by zero
+      : 0; 
   }
 
   const totalCompletions = completions.length;
   const longestStreak = Math.max(...habits.map(h => getStreak(h.id)), 0);
   
-  // This average is now correct as it uses the new getCompletionRate
   const averageRate = habits.length > 0
     ? Math.round(habits.reduce((sum, h) => sum + getCompletionRate(h.id), 0) / habits.length)
     : 0;
 
-  // Animate progress bars on mount
   useEffect(() => {
     const values: { [key: string]: number } = {};
     habits.forEach(habit => {
@@ -166,7 +188,6 @@ export function ProgressView() {
     return () => clearTimeout(timer);
   }, [habits, getCompletionRate]);
 
-  // Get data for the last 7 days trend chart
   const getLast7DaysTrend = () => {
     const days = [];
     const counts = [];
@@ -187,7 +208,6 @@ export function ProgressView() {
 
   const trendData = getLast7DaysTrend();
 
-  // Chart for completion trend
   const lineChartData = {
     labels: trendData.days,
     datasets: [
@@ -211,9 +231,7 @@ export function ProgressView() {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        display: false,
-      },
+      legend: { display: false },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         padding: 12,
@@ -225,26 +243,16 @@ export function ProgressView() {
     scales: {
       y: {
         beginAtZero: true,
-        ticks: {
-          stepSize: 1,
-          color: '#9ca3af',
-        },
-        grid: {
-          color: 'rgba(156, 163, 175, 0.1)',
-        },
+        ticks: { stepSize: 1, color: '#9ca3af' },
+        grid: { color: 'rgba(156, 163, 175, 0.1)' },
       },
       x: {
-        ticks: {
-          color: '#9ca3af',
-        },
-        grid: {
-          display: false,
-        },
+        ticks: { color: '#9ca3af' },
+        grid: { display: false },
       },
     },
   };
 
-  // Doughnut chart for habit distribution
   const habitCompletionData = {
     labels: habits.map(h => h.name),
     datasets: [
@@ -267,9 +275,7 @@ export function ProgressView() {
         labels: {
           color: '#9ca3af',
           padding: 15,
-          font: {
-            size: 12,
-          },
+          font: { size: 12 },
           usePointStyle: true,
           pointStyle: 'circle',
         },
@@ -284,7 +290,6 @@ export function ProgressView() {
     },
   };
 
-  // Bar chart for completion rates
   const completionRatesData = {
     labels: habits.map(h => h.name.length > 15 ? h.name.substring(0, 15) + '...' : h.name),
     datasets: [
@@ -302,9 +307,7 @@ export function ProgressView() {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        display: false,
-      },
+      legend: { display: false },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         padding: 12,
@@ -323,22 +326,14 @@ export function ProgressView() {
         beginAtZero: true,
         max: 100,
         ticks: {
-          callback: function(value: string | number) {
-            return value + '%';
-          },
+          callback: function(value: string | number) { return value + '%'; },
           color: '#9ca3af',
         },
-        grid: {
-          color: 'rgba(156, 163, 175, 0.1)',
-        },
+        grid: { color: 'rgba(156, 163, 175, 0.1)' },
       },
       x: {
-        ticks: {
-          color: '#9ca3af',
-        },
-        grid: {
-          display: false,
-        },
+        ticks: { color: '#9ca3af' },
+        grid: { display: false },
       },
     },
   };
@@ -387,7 +382,6 @@ export function ProgressView() {
       {/* Charts Section */}
       {habits.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Completion Trend Chart */}
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-blue-600" />
@@ -398,7 +392,6 @@ export function ProgressView() {
             </div>
           </div>
 
-          {/* Habit Distribution Chart */}
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Target className="w-5 h-5 text-purple-600" />
@@ -409,7 +402,6 @@ export function ProgressView() {
             </div>
           </div>
 
-          {/* Completion Rates Chart */}
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 lg:col-span-2">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Award className="w-5 h-5 text-green-600" />
@@ -426,22 +418,6 @@ export function ProgressView() {
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white">Habit Statistics</h3>
-          <div className="flex gap-2">
-            <button
-              onClick={() => exportData('json')}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-            >
-              <Download className="w-4 h-4" />
-              <span>JSON</span>
-            </button>
-            <button
-              onClick={() => exportData('csv')}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-            >
-              <Download className="w-4 h-4" />
-              <span>CSV</span>
-            </button>
-          </div>
         </div>
 
         <div className="space-y-6">
@@ -451,7 +427,6 @@ export function ProgressView() {
             const totalHabitCompletions = completions.filter(c => c.habit_id === habit.id).length;
             const last30Days = getLast30DaysCompletions(habit.id);
 
-            // Get active days for this habit
             const frequency = habit.frequency === 'weekly' ? 'custom' : habit.frequency;
             const habitActiveDays = frequency === 'daily'
               ? [0, 1, 2, 3, 4, 5, 6]
@@ -487,7 +462,6 @@ export function ProgressView() {
                   </div>
                 </div>
 
-                {/* Animated Progress Bar */}
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-xs text-gray-600 dark:text-gray-400">Progress</p>
@@ -508,7 +482,6 @@ export function ProgressView() {
                 <div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Last 30 Days</p>
                   <div className="flex gap-1">
-                    {/* Updated 30-day view logic */}
                     {last30Days.map((completed, index) => {
                       const date = new Date();
                       date.setDate(date.getDate() - (29 - index));
@@ -517,11 +490,11 @@ export function ProgressView() {
 
                       let bgColor;
                       if (!isActiveDay) {
-                        bgColor = 'bg-gray-100 dark:bg-gray-800'; // Skipped day
+                        bgColor = 'bg-gray-100 dark:bg-gray-800'; 
                       } else {
                         bgColor = completed
-                          ? 'bg-green-500' // Active and completed
-                          : 'bg-gray-200 dark:bg-gray-700'; // Active and missed
+                          ? 'bg-green-500' 
+                          : 'bg-gray-200 dark:bg-gray-700'; 
                       }
 
                       return (
@@ -539,6 +512,25 @@ export function ProgressView() {
           })}
         </div>
       </div>
+      
+      {/* NEW: Export Data Button Section */}
+      <div className="flex justify-center pb-8">
+        <button
+          onClick={() => setShowExportModal(true)}
+          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+        >
+          <Download className="w-5 h-5" />
+          <span className="font-medium">Export Your Habit Data (as a PDF, a CSV or a JSON file)</span>
+        </button>
+      </div>
+
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExportJSON={() => exportData('json')}
+        onExportCSV={() => exportData('csv')}
+        onExportPDF={exportPDF}
+      />
     </div>
   );
 }

@@ -16,7 +16,6 @@ import {
   Trash2,
   Filter,
   BookOpen,
-  Download,
   Globe2,
   User,
   Target,
@@ -32,9 +31,7 @@ import { Profile } from './Profile';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { ExportModal } from './ExportModal';
 import { useHabits } from '../hooks/useHabits';
-import { PrebuiltHabitsManager } from './PrebuiltHabitsManager';
 import { Footer } from './Footer';
 import { TimezoneSettings } from './TimezoneSettings';
 
@@ -48,8 +45,8 @@ const getCategories = (habit: { category?: string[] | null }): string[] => {
 };
 
 export function Dashboard() {
-  const { habits, completions, loading, toggleCompletion, isCompleted, getStreak, deleteHabit } = useHabits();
-  const { signOut, user } = useAuth();
+  const { habits, loading, toggleCompletion, isCompleted, getStreak, deleteHabit } = useHabits();
+  const { signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -57,10 +54,8 @@ export function Dashboard() {
   const [editingHabit, setEditingHabit] = useState<string | null>(null);
   const [deletingHabit, setDeletingHabit] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
   const [showTzSettings, setShowTzSettings] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false); // New state for mobile menu
-  const [showPrebuiltManager, setShowPrebuiltManager] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [filterCategory, setFilterCategory] = useState('All');
 
   const today = new Date().toISOString().split('T')[0];
@@ -294,13 +289,7 @@ export function Dashboard() {
                   Today's Habits
                 </h2>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowExportModal(true)}
-                    className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
-                  >
-                    <Download className="w-5 h-5" />
-                    <span className="hidden sm:inline">Export Data</span>
-                  </button>
+                  {/* Export button removed from here */}
                   <button
                     onClick={() => setShowHabitForm(true)}
                     className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -349,7 +338,7 @@ export function Dashboard() {
                     <span>Create Your First Habit</span>
                   </button>
                 </div>
-              ) : filteredHabitsToday.length === 0 ? ( // NEW: Empty state for filters
+              ) : filteredHabitsToday.length === 0 ? (
                 <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center border border-gray-200 dark:border-gray-700">
                   <Filter className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -414,14 +403,12 @@ export function Dashboard() {
                         </div>
 
                         <div className="flex items-center justify-between">
-                          {/* Container now wraps and has a smaller gap */}
                           <div className="flex items-center flex-wrap gap-2 text-sm">
                             <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                               <Flame className="w-4 h-4" />
                               <span>{streak} day streak</span>
                             </div>
 
-                            {/* Map over all categories and create a badge for each */}
                             {habitCategories.map(cat => (
                               <span
                                 key={cat}
@@ -476,11 +463,7 @@ export function Dashboard() {
           />
         )}
 
-        {/* Export Modal */}
-        <ExportModal
-          isOpen={showExportModal}
-          onClose={() => setShowExportModal(false)}
-        />
+        {/* Export Modal removed from here */}
 
         {/* Onboarding Modal */}
         <Onboarding />
