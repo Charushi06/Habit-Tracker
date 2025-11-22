@@ -1,4 +1,4 @@
-import { useHabits } from '../hooks/useHabits';
+import { useHabits, Habit } from '../hooks/useHabits'; // Added Habit type
 import { Download, TrendingUp, Award, Target, FileText } from 'lucide-react';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import {
@@ -15,9 +15,11 @@ import {
   Filler
 } from 'chart.js';
 import { useEffect, useState } from 'react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// import jsPDF from 'jspdf'; // REMOVED: Now used in external utility
+// import autoTable from 'jspdf-autotable'; // REMOVED: Now used in external utility
 import { ExportModal } from './ExportModal';
+// --- NEW IMPORT ---
+import { generateHabitsPDF } from '../utils/pdfExport';
 
 // Register ChartJS components
 ChartJS.register(
@@ -47,7 +49,7 @@ export function ProgressView() {
 
       return {
         name: habit.name,
-        description: habit.description,
+        description: habit: description,
         frequency: frequency,
         active_days_csv: activeDays,
         active_days_json: activeDaysList,
@@ -86,47 +88,24 @@ export function ProgressView() {
     }
   }
 
-  // --- NEW PDF EXPORT LOGIC ---
-  function exportPDF() {
-    const doc = new jsPDF();
+  // --- REPLACED PDF EXPORT LOGIC ---
+  async function exportPDF() {
+    // Augment habit data with completion dates, which the PDF generator expects
+    const habitsWithCompletions: Habit[] = habits.map(habit => ({
+      ...habit,
+      completed_dates: completions
+        .filter(c => c.habit_id === habit.id)
+        .map(c => c.completed_date),
+    }));
 
-    // Title
-    doc.setFontSize(18);
-    doc.text('Habit Tracker Progress Report', 14, 22);
-    
-    // Date
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
-
-    // Table Data Preparation
-    const tableColumn = ["Habit Name", "Frequency", "Streak", "Total Completions", "Completion Rate"];
-    const tableRows = habits.map(habit => {
-      const frequency = habit.frequency === 'weekly' ? 'custom' : habit.frequency;
-      const rate = getCompletionRate(habit.id);
-      const total = completions.filter(c => c.habit_id === habit.id).length;
-      const streak = getStreak(habit.id);
-
-      return [
-        habit.name,
-        frequency,
-        `${streak} days`,
-        total,
-        `${rate}%`
-      ];
+    // Call the external utility function
+    await generateHabitsPDF({
+      habits: habitsWithCompletions,
+      userName: 'User',
+      dateRange: undefined,
+      includeStreak: true,
+      includeProgress: true,
     });
-
-    // Generate Table
-    autoTable(doc, {
-      startY: 40,
-      head: [tableColumn],
-      body: tableRows,
-      headStyles: { fillColor: [63, 81, 181] }, // Blue header
-      styles: { fontSize: 10 },
-      alternateRowStyles: { fillColor: [245, 245, 245] }
-    });
-
-    doc.save('habit-tracker-report.pdf');
   }
 
   function downloadFile(blob: Blob, filename: string) {
