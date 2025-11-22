@@ -545,8 +545,6 @@ export function ProgressView() {
         </button>
       </div>
 
-      {/* NEW: Export Modal */}
-      {/* IMPORTANT: You must update ExportModal.tsx to accept these props! */}
       <ExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
