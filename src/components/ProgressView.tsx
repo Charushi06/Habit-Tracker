@@ -49,7 +49,7 @@ export function ProgressView() {
 
       return {
         name: habit.name,
-        description: habit: description,
+        description: habit.description,
         frequency: frequency,
         active_days_csv: activeDays,
         active_days_json: activeDaysList,
