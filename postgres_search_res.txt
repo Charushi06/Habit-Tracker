@@ -1,0 +1,63 @@
+
+   - 
+                                                                                                                        
+Name                            Id                                 Version      Match               Source
+-----------------------------------------------------------------------------------------------------------
+PostgreSQLS+¡µûçµëïsåî              9NBLGGH4NSM4                       Unknown                          msstore
+PostgreSQL 17                   PostgreSQL.PostgreSQL.17           17.9-2       Moniker: postgresql winget
+PostgreSQL 18                   PostgreSQL.PostgreSQL.18           18.3-2       Moniker: postgresql winget
+Postgres Pro Standard 13        PostgresPro.Standard.13            13.23        Moniker: postgresql winget
+Postgres Pro Standard 14        PostgresPro.Standard.14            14.20        Moniker: postgresql winget
+Postgres Pro Standard 15        PostgresPro.Standard.15            15.15        Moniker: postgresql winget
+Postgres Pro Standard 17        PostgresPro.Standard.17            17.7         Moniker: postgresql winget
+Benthic Software: GoldSqall 1.x BenthicSoftware.GoldSqall.1        1.5.0.130    Tag: postgresql     winget
+Benthic Software: GoldSqall 2.x BenthicSoftware.GoldSqall.2        2.4.0.240    Tag: postgresql     winget
+DbVisualizer                    DBVis.DBVisualizer                 26.1         Tag: postgresql     winget
+DBeaver                         DBeaver.DBeaver.Community          26.0.1       Tag: postgresql     winget
+DBeaverEE                       DBeaver.DBeaver.Enterprise         26.0.0       Tag: postgresql     winget
+DBeaverLite                     DBeaver.DBeaver.Lite               26.0.0       Tag: postgresql     winget
+DBeaverTeam                     DBeaver.DBeaver.Team               26.0.0       Tag: postgresql     winget
+DBeaverUltimate                 DBeaver.DBeaver.Ultimate           26.0.0       Tag: postgresql     winget
+tabularis                       Debba.Tabularis                    0.9.12       Tag: postgresql     winget
+HeidiSQL                        HeidiSQL.HeidiSQL                  12.16.0.7229 Tag: postgresql     winget
+Luna Modeler                    Ideamerit.LunaModeler              13.5.0       Tag: postgresql     winget
+DbGate                          JanProchazka.dbgate                7.1.6        Tag: postgresql     winget
+Laragon                         LeNgocKhoa.Laragon                 8.6.1        Tag: postgresql     winget
+pgAdmin 4                       PostgreSQL.pgAdmin                 9.13         Tag: postgresql     winget
+psqlodbc                        PostgreSQL.psqlODBC                18.00.0001   Tag: postgresql     winget
+psqlodbc (mimalloc version)     PostgreSQL.psqlODBC.mimalloc       18.00.0001   Tag: postgresql     winget
+PremiumSoft Navicat Premium     PremiumSoft.NavicatPremium         16.1.15      Tag: postgresql     winget
+Navicat Premium Lite            PremiumSoft.NavicatPremiumLite     17.3.7       Tag: postgresql     winget
+Goose                           Pressly.Goose                      3.27.0       Tag: postgresql     winget
+TablePlus                       TablePlus.TablePlus                6.9.2        Tag: postgresql     winget
+TeamIDE                         TeamIDE.TeamIDE                    2.6.38       Tag: postgresql     winget
+SQL Schema Compare              TiCodeX.SQLSchemaCompare           2026.3.1     Tag: postgresql     winget
+Dbmate                          amacneil.dbmate                    2.32.0       Tag: postgresql     winget
+Beekeeper Studio                beekeeper-studio.beekeeper-studio  5.6.3        Tag: postgresql     winget
+pgtail                          willibrandon.pgtail                0.6.0        Tag: postgresql     winget
+Algernon                        xyproto.algernon                   1.17.5       Tag: postgresql     winget
+Navicat BI                      PremiumSoft.NavicatBI              2.3.7        Tag: PostgreSQL     winget
+Navicat BI Viewer               PremiumSoft.NavicatBIViewer        2.3.7        Tag: PostgreSQL     winget
+Navicat Data Modeler            PremiumSoft.NavicatDataModeler     4.3.7        Tag: PostgreSQL     winget
+Navicat Data Modeler Lite       PremiumSoft.NavicatDataModelerLite 4.3.7        Tag: PostgreSQL     winget
+Navicat Monitor                 PremiumSoft.NavicatMonitor         3.1.4        Tag: PostgreSQL     winget
+Navicat On-Prem Server          PremiumSoft.NavicatOnPremServer    3.0.1        Tag: PostgreSQL     winget
+Navicat for PostgreSQL          PremiumSoft.NavicatPostgreSQL      17.3.7       Tag: PostgreSQL     winget
+Sante PACS Server PG            Santesoft.SantePacsServerPG        4.2.5        Tag: PostgreSQL     winget
+Kangaroo MariaDB                Taozuhong.KangarooMariaDB          9.2.1.301    Tag: PostgreSQL     winget
+Kangaroo MongoDB                Taozuhong.KangarooMongoDB          9.2.1.301    Tag: PostgreSQL     winget
+Kangaroo Multiple               Taozuhong.KangarooMultiple         9.2.1.301    Tag: PostgreSQL     winget
+Kangaroo MySQL                  Taozuhong.KangarooMySQL            9.2.1.301    Tag: PostgreSQL     winget
+Kangaroo Oracle                 Taozuhong.KangarooOracle           9.2.1.301    Tag: PostgreSQL     winget
+Kangaroo PostgreSQL             Taozuhong.KangarooPostgreSQL       9.2.1.301    Tag: PostgreSQL     winget
+Kangaroo Redis                  Taozuhong.KangarooRedis            9.2.1.301    Tag: PostgreSQL     winget
+Kangaroo SQLServer              Taozuhong.KangarooSQLServer        9.2.1.301    Tag: PostgreSQL     winget
+Kangaroo SQLite                 Taozuhong.KangarooSQLite           9.2.1.301    Tag: PostgreSQL     winget
+PostgreSQL 10                   PostgreSQL.PostgreSQL.10           10                               winget
+PostgreSQL 11                   PostgreSQL.PostgreSQL.11           11                               winget
+PostgreSQL 12                   PostgreSQL.PostgreSQL.12           12.22-1                          winget
+PostgreSQL 13                   PostgreSQL.PostgreSQL.13           13.23-1                          winget
+PostgreSQL 14                   PostgreSQL.PostgreSQL.14           14.22-2                          winget
+PostgreSQL 15                   PostgreSQL.PostgreSQL.15           15.17-2                          winget
+PostgreSQL 16                   PostgreSQL.PostgreSQL.16           16.13-2                          winget
+PostgreSQL 9                    PostgreSQL.PostgreSQL.9            9                                winget
