@@ -49,7 +49,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="https://github.com/Charushi06/Habit-Tracker/blob/main/README.md"
+                  href="https://github.com/Charushi06/Habit-Tracker/blob/master/README.md"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:font-semibold transition-all duration-200 ease-in-out transform hover:translate-x-1"
@@ -66,7 +66,7 @@ export function Footer() {
             <ul className="space-y-2">
               <li>
                 <a
-                  href="#"
+                  href="/privacy"
                   className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:font-semibold transition-colors duration-200"
                 >
                   Privacy Policy
@@ -74,7 +74,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="#"
+                  href="/terms"
                   className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:font-semibold transition-colors duration-200"
                 >
                   Terms of Service

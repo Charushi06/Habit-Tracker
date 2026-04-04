@@ -301,6 +301,18 @@ export function Onboarding({ onOpenPrebuiltManager }: { onOpenPrebuiltManager?: 
   const { habits, loading } = useHabits();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  // Only show onboarding modal for users with no habits and when not loading
+  // Don't close during saving to allow multiple habits to be added
+  
+  // Show for new users with no habits
+  // Temporarily disabled localStorage check for testing
+  // const key = `onboarding_shown_${user?.id ?? 'anon'}`;
+  // const alreadyShown = typeof window !== 'undefined' && localStorage.getItem(key) === '1';
+  // if (alreadyShown) return null;
+
+  // Mark as shown so it won't appear next time
   const [isManuallyClosed, setIsManuallyClosed] = useState(false);
   const key = `onboarding_shown_${user?.id ?? 'anon'}`;
 
@@ -313,6 +325,9 @@ export function Onboarding({ onOpenPrebuiltManager }: { onOpenPrebuiltManager?: 
       return false;
     }
   });
+if (loading || (habits.length > 0 && !saving) || dismissed) {
+    return null;
+  }
 
   // Helper function to mark the modal as shown in localStorage and state
   const markAsShown = () => {
@@ -346,6 +361,11 @@ export function Onboarding({ onOpenPrebuiltManager }: { onOpenPrebuiltManager?: 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative">
+        <button
+          onClick={() => setDismissed(true)}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+          title="Close onboarding"/>
       <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <button
           onClick={handleClose}
@@ -384,6 +404,7 @@ export function Onboarding({ onOpenPrebuiltManager }: { onOpenPrebuiltManager?: 
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
