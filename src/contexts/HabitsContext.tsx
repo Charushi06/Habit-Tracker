@@ -4,6 +4,13 @@ import { useAuth } from './AuthContext';
 import { scheduleHabitReminder, cancelHabitReminder, scheduleEmailReminder, notificationManager } from '../utils/notifications';
 import { getBrowserTimeZone, getZoneOffsetMinutes, nextUtcInstantFromLocalTime } from '../utils/timeUtils';
 
+type Category = {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+};
+
 type Habit = {
   id: string;
   user_id: string;
@@ -22,6 +29,7 @@ type Habit = {
   snoozed_until: string | null;
   snooze_duration: number | null;
   category: string[];
+  category_id?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -100,7 +108,13 @@ type HabitsContextType = {
   challenges: Challenge[];
   completions: HabitCompletion[];
   history: HabitHistory[];
+  categories: Category[];
   loading: boolean;
+  // Category functions
+  fetchCategories: () => Promise<Category[]>;
+  createCategory: (name: string) => Promise<Category>;
+  updateCategory: (id: string, name: string) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   createHabit: (habit: Omit<Habit, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'target_days'> & { target_days?: number }) => Promise<Habit>;
   updateHabit: (id: string, updates: Partial<Habit>) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
@@ -148,6 +162,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [completions, setCompletions] = useState<HabitCompletion[]>([]);
   const [history, setHistory] = useState<HabitHistory[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadHabits = useCallback(async () => {
@@ -432,6 +447,85 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     return new Date(habit.snoozed_until) > new Date();
   }
 
+  // ——— Category Functions ——— //
+  async function fetchCategories() {
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('name', { ascending: true });
+    if (error) throw error;
+    setCategories(data || []);
+    return data || [];
+  }
+
+  async function createCategory(name: string) {
+    if (!user) throw new Error('You must be logged in to create a category.');
+    
+    // Check for duplicate name (case-insensitive)
+    const normalizedName = name.trim();
+    const existingCategory = categories.find(
+      c => c.name.toLowerCase() === normalizedName.toLowerCase()
+    );
+    if (existingCategory) {
+      throw new Error(`Category "${normalizedName}" already exists.`);
+    }
+    
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({ name: normalizedName, user_id: user.id })
+      .select()
+      .single();
+    
+    if (error) {
+      // Handle unique constraint violation from database
+      if (error.code === '23505') {
+        throw new Error(`Category "${normalizedName}" already exists.`);
+      }
+      throw error;
+    }
+    
+    setCategories([...categories, data]);
+    return data;
+  }
+
+  async function updateCategory(id: string, name: string) {
+    const normalizedName = name.trim();
+    
+    // Check for duplicate name (excluding the current category)
+    const existingCategory = categories.find(
+      c => c.id !== id && c.name.toLowerCase() === normalizedName.toLowerCase()
+    );
+    if (existingCategory) {
+      throw new Error(`Category "${normalizedName}" already exists.`);
+    }
+    
+    const { error } = await supabase
+      .from('categories')
+      .update({ name: normalizedName })
+      .eq('id', id);
+    
+    if (error) {
+      if (error.code === '23505') {
+        throw new Error(`Category "${normalizedName}" already exists.`);
+      }
+      throw error;
+    }
+    
+    setCategories(categories.map(c => c.id === id ? { ...c, name: normalizedName } : c));
+  }
+
+  async function deleteCategory(id: string) {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    setCategories(categories.filter(c => c.id !== id));
+  }
+
   // ——— Prebuilt Habit Functions ——— //
   async function fetchPrebuiltHabits() {
     if (!user) return [];
@@ -632,7 +726,12 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     challenges,
     completions,
     history,
+    categories,
     loading,
+    fetchCategories,
+    createCategory,
+    updateCategory,
+    deleteCategory,
     createHabit,
     updateHabit,
     deleteHabit,
