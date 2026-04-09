@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, UserPlus, Loader2 } from 'lucide-react';
+import { LogIn, UserPlus } from 'lucide-react';
+import { Spinner } from './Spinner';
 
 export function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -8,13 +9,13 @@ export function Auth() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp } = useAuth();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setIsLoading(true);
 
     try {
       console.log('Attempting auth:', { isSignUp, email });
@@ -30,7 +31,7 @@ export function Auth() {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       setError(errorMessage);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }
 
@@ -104,12 +105,12 @@ export function Auth() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={isLoading}
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading ? (
+            {isLoading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Spinner />
                 <span>Processing...</span>
               </>
             ) : (
