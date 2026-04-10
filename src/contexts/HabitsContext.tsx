@@ -28,6 +28,7 @@ type Habit = {
   email_notifications: boolean;
   snoozed_until: string | null;
   snooze_duration: number | null;
+  next_reminder_at_utc?: string | null;
   category: string[];
   category_id?: string | null;
   created_at: string;
@@ -239,6 +240,52 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     });
   }, [habits, user?.email, profile?.timezone, profile?.timezone_manual]);
 
+  const fetchCategories = useCallback(async () => {
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('name', { ascending: true });
+    if (error) throw error;
+    setCategories(data || []);
+    return data || [];
+  }, [user?.id]);
+
+  const fetchPrebuiltHabits = useCallback(async () => {
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from('prebuilt_habits')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    setPrebuiltHabits(data || []);
+    return data || [];
+  }, [user?.id]);
+
+  const fetchPrebuiltChallenges = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('prebuilt_challenges')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    setPrebuiltChallenges(data || []);
+    return data || [];
+  }, []);
+
+  const fetchChallenges = useCallback(async () => {
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from('challenges')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    setChallenges(data || []);
+    return data || [];
+  }, [user?.id]);
+
   useEffect(() => {
     if (user) {
       loadHabits();
@@ -259,7 +306,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
       notificationManager.cancelAllScheduledNotifications();
       setLoading(false);
     }
-  }, [user, loadHabits, loadCompletions, loadHistory]);
+  }, [user, loadHabits, loadCompletions, loadHistory, fetchCategories, fetchPrebuiltHabits, fetchPrebuiltChallenges, fetchChallenges]);
 
   useEffect(() => {
     if (user && habits.length > 0) setupNotifications();
@@ -450,17 +497,6 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
   }
 
   // ——— Category Functions ——— //
-  async function fetchCategories() {
-    if (!user) return [];
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('name', { ascending: true });
-    if (error) throw error;
-    setCategories(data || []);
-    return data || [];
-  }
 
   async function addCategory(name: string) {
     if (!user) throw new Error('You must be logged in to create a category.');
@@ -534,17 +570,6 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
   }
 
   // ——— Prebuilt Habit Functions ——— //
-  async function fetchPrebuiltHabits() {
-    if (!user) return [];
-    const { data, error } = await supabase
-      .from('prebuilt_habits')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    setPrebuiltHabits(data || []);
-    return data || [];
-  }
 
   async function createPrebuiltHabit(habit: Omit<PrebuiltHabit, 'id' | 'user_id' | 'created_at' | 'updated_at'>) {
     if (!user) throw new Error('You must be logged in to create a prebuilt habit.');
@@ -593,27 +618,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
   }
 
   // ——— Challenge Functions ——— //
-  async function fetchPrebuiltChallenges() {
-    const { data, error } = await supabase
-      .from('prebuilt_challenges')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    setPrebuiltChallenges(data || []);
-    return data || [];
-  }
 
-  async function fetchChallenges() {
-    if (!user) return [];
-    const { data, error } = await supabase
-      .from('challenges')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    setChallenges(data || []);
-    return data || [];
-  }
 
   async function createChallenge(challenge: Omit<Challenge, 'id' | 'user_id' | 'created_at' | 'updated_at'>) {
     if (!user) throw new Error('You must be logged in to create a challenge.');
