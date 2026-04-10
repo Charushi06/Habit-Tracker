@@ -156,6 +156,7 @@ export function Dashboard() {
                   <button
                     onClick={() => setShowNotifications(!showNotifications)}
                     className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors relative"
+                    aria-label={showNotifications ? 'Close notifications panel' : 'Open notifications panel'}
                   >
                     <Bell className="w-5 h-5" />
                     {reminderCount > 0 && (
@@ -175,12 +176,14 @@ export function Dashboard() {
                   onClick={() => setShowTzSettings(true)}
                   className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                   title="Timezone settings"
+                  aria-label="Open timezone settings"
                 >
                   <Globe2 className="w-5 h-5" />
                 </button>
                 <button
                   onClick={toggleTheme}
                   className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  aria-label={isDarkMode ? 'Switch to light theme' : 'Switch to dark theme'}
                 >
                   {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
@@ -282,6 +285,16 @@ export function Dashboard() {
                   </div>
                 ))}
               </div>
+              <div
+                role="progressbar"
+                aria-label="Today's habit completion progress"
+                aria-valuenow={completedToday}
+                aria-valuemin={0}
+                aria-valuemax={Math.max(totalActive, 1)}
+                className="sr-only"
+              >
+                {completedToday} of {totalActive} habits completed today
+              </div>
 
               {/* Habits Section */}
               <div className="flex justify-between items-center mb-6">
@@ -355,13 +368,14 @@ export function Dashboard() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <ul role="list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredHabitsToday.map((habit) =>{
                     const completed = isCompleted(habit.id, today);
                     const streak = getStreak(habit.id);
                     const habitCategories = getCategories(habit);
                     return (
-                      <div
+                      <li
+                        role="listitem"
                         key={habit.id}
                         className={`rounded-xl p-6 shadow-sm border hover:shadow-md transition-all duration-300 ${
                           completed
@@ -387,6 +401,9 @@ export function Dashboard() {
                               >
                                 {habit.name}
                               </h3>
+                              <span className="sr-only">
+                                Status: {completed ? 'Done' : 'Not done'}
+                              </span>
                               {habit.description && (
                                 <p
                                   className={`text-sm truncate transition-all duration-300 ${
@@ -405,6 +422,7 @@ export function Dashboard() {
                               onClick={() => handleEditHabit(habit.id)}
                               className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                               title="Edit habit"
+                              aria-label={`Edit habit ${habit.name}`}
                             >
                               <Edit className="w-4 h-4" />
                             </button>
@@ -412,6 +430,7 @@ export function Dashboard() {
                               onClick={() => setDeletingHabit(habit.id)}
                               className="p-2 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
                               title="Delete habit"
+                              aria-label={`Delete habit ${habit.name}`}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -437,8 +456,10 @@ export function Dashboard() {
 
                           <button
                             onClick={() => toggleCompletion(habit.id, today)}
+                            role="checkbox"
+                            aria-checked={completed}
                             className="group p-1.5 rounded-lg active:scale-90 transition-transform duration-150"
-                            aria-label={completed ? `Mark ${habit.name} as incomplete` : `Mark ${habit.name} as complete`}
+                            aria-label={`Mark ${habit.name} as completed`}
                           >
                             <span
                               className={`relative flex items-center justify-center w-7 h-7 rounded-full border transition-all duration-300 ease-in-out ${
@@ -460,10 +481,10 @@ export function Dashboard() {
                             </span>
                           </button>
                         </div>
-                      </div>
+                      </li>
                     );
                   })}
-                </div>
+                </ul>
               )}
 
               <SuggestedHabits />
@@ -498,8 +519,13 @@ export function Dashboard() {
         {/* Delete Confirmation */}
         {deletingHabit && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-habit-dialog-title"
+              className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl"
+            >
+              <h3 id="delete-habit-dialog-title" className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 Delete Habit?
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">

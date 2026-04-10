@@ -98,10 +98,15 @@ export function CategoryManager({ isOpen, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="category-manager-title"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 id="category-manager-title" className="text-xl font-semibold text-gray-900 dark:text-white">
             Manage Categories
           </h2>
           <button
@@ -173,7 +178,11 @@ export function CategoryManager({ isOpen, onClose }: Props) {
                   {editingId === category.id ? (
                     // Edit Mode
                     <form onSubmit={handleUpdate} className="flex-1 flex items-center gap-2">
+                      <label htmlFor="edit-category-name" className="sr-only">
+                        Edit category name
+                      </label>
                       <input
+                        id="edit-category-name"
                         type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
