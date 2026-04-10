@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useHabits } from '../hooks/useHabits';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Search, Plus, Edit, Trash2, History, Filter } from 'lucide-react';
 
 export function HistoryView() {
+  useDocumentTitle('History');
   const { history } = useHabits();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterAction, setFilterAction] = useState<'all' | 'created' | 'updated' | 'deleted'>('all');

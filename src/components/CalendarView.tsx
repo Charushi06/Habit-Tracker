@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useHabits } from '../hooks/useHabits';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { Habit } from '../lib/supabase'; // Import the Habit type
 
 export function CalendarView() {
+  useDocumentTitle('Calendar');
   const { habits, isCompleted } = useHabits();
   const [currentDate, setCurrentDate] = useState(new Date());
 

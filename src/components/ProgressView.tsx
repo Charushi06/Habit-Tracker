@@ -1,4 +1,5 @@
 import { useHabits, Habit } from '../hooks/useHabits'; // Added Habit type
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Download, TrendingUp, Award, Target, FileText } from 'lucide-react';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import {
@@ -36,6 +37,7 @@ ChartJS.register(
 );
 
 export function ProgressView() {
+  useDocumentTitle('Progress');
   const { habits, completions, getStreak } = useHabits();
   const [animatedValues, setAnimatedValues] = useState<{ [key: string]: number }>({});
   const [showExportModal, setShowExportModal] = useState(false);
