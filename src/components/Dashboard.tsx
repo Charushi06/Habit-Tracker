@@ -355,13 +355,14 @@ export function Dashboard() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <ul role="list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredHabitsToday.map((habit) =>{
                     const completed = isCompleted(habit.id, today);
                     const streak = getStreak(habit.id);
                     const habitCategories = getCategories(habit);
                     return (
-                      <div
+                      <li
+                        role="listitem"
                         key={habit.id}
                         className={`rounded-xl p-6 shadow-sm border hover:shadow-md transition-all duration-300 ${
                           completed
@@ -460,10 +461,10 @@ export function Dashboard() {
                             </span>
                           </button>
                         </div>
-                      </div>
+                      </li>
                     );
                   })}
-                </div>
+                </ul>
               )}
 
               <SuggestedHabits />
