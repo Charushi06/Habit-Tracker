@@ -285,6 +285,16 @@ export function Dashboard() {
                   </div>
                 ))}
               </div>
+              <div
+                role="progressbar"
+                aria-label="Today's habit completion progress"
+                aria-valuenow={completedToday}
+                aria-valuemin={0}
+                aria-valuemax={Math.max(totalActive, 1)}
+                className="sr-only"
+              >
+                {completedToday} of {totalActive} habits completed today
+              </div>
 
               {/* Habits Section */}
               <div className="flex justify-between items-center mb-6">
@@ -391,6 +401,9 @@ export function Dashboard() {
                               >
                                 {habit.name}
                               </h3>
+                              <span className="sr-only">
+                                Status: {completed ? 'Done' : 'Not done'}
+                              </span>
                               {habit.description && (
                                 <p
                                   className={`text-sm truncate transition-all duration-300 ${
@@ -443,8 +456,10 @@ export function Dashboard() {
 
                           <button
                             onClick={() => toggleCompletion(habit.id, today)}
+                            role="checkbox"
+                            aria-checked={completed}
                             className="group p-1.5 rounded-lg active:scale-90 transition-transform duration-150"
-                            aria-label={completed ? `Mark ${habit.name} as incomplete` : `Mark ${habit.name} as complete`}
+                            aria-label={`Mark ${habit.name} as completed`}
                           >
                             <span
                               className={`relative flex items-center justify-center w-7 h-7 rounded-full border transition-all duration-300 ease-in-out ${
