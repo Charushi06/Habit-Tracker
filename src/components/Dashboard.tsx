@@ -363,7 +363,11 @@ export function Dashboard() {
                     return (
                       <div
                         key={habit.id}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+                        className={`rounded-xl p-6 shadow-sm border hover:shadow-md transition-all duration-300 ${
+                          completed
+                            ? 'bg-white/80 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 opacity-60'
+                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                        }`}
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center gap-3 flex-1">
@@ -374,11 +378,23 @@ export function Dashboard() {
                               <span className="text-2xl">{habit.icon}</span>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-gray-900 dark:text-white">
+                              <h3
+                                className={`font-semibold transition-all duration-300 ${
+                                  completed
+                                    ? 'line-through text-gray-400 dark:text-gray-500'
+                                    : 'text-gray-900 dark:text-white'
+                                }`}
+                              >
                                 {habit.name}
                               </h3>
                               {habit.description && (
-                                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                                <p
+                                  className={`text-sm truncate transition-all duration-300 ${
+                                    completed
+                                      ? 'text-gray-400 dark:text-gray-500'
+                                      : 'text-gray-600 dark:text-gray-400'
+                                  }`}
+                                >
                                   {habit.description}
                                 </p>
                               )}
@@ -421,16 +437,27 @@ export function Dashboard() {
 
                           <button
                             onClick={() => toggleCompletion(habit.id, today)}
-                            className={`p-2 rounded-lg transition-all ${completed
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'
-                              }`}
+                            className="group p-1.5 rounded-lg active:scale-90 transition-transform duration-150"
+                            aria-label={completed ? `Mark ${habit.name} as incomplete` : `Mark ${habit.name} as complete`}
                           >
-                            {completed ? (
-                              <CheckCircle2 className="w-6 h-6" />
-                            ) : (
-                              <Circle className="w-6 h-6" />
-                            )}
+                            <span
+                              className={`relative flex items-center justify-center w-7 h-7 rounded-full border transition-all duration-300 ease-in-out ${
+                                completed
+                                  ? 'bg-green-500/20 dark:bg-green-500/30 border-green-500 text-green-600 dark:text-green-400'
+                                  : 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 group-hover:bg-gray-200 dark:group-hover:bg-gray-600'
+                              }`}
+                            >
+                              <Circle
+                                className={`absolute w-6 h-6 transition-all duration-200 ease-out ${
+                                  completed ? 'scale-75 opacity-0' : 'scale-100 opacity-100'
+                                }`}
+                              />
+                              <CheckCircle2
+                                className={`absolute w-6 h-6 transition-all duration-200 ease-out ${
+                                  completed ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
+                                }`}
+                              />
+                            </span>
                           </button>
                         </div>
                       </div>

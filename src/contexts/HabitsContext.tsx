@@ -432,19 +432,51 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
 
   async function toggleCompletion(habitId: string, date: string) {
     if (!user) return;
-    const existing = completions.find(c => c.habit_id === habitId && c.completed_date === date);
+    const previousCompletions = [...completions];
+    const existing = previousCompletions.find(
+      (c) => c.habit_id === habitId && c.completed_date === date
+    );
+
+    let optimisticCompletionId: string | null = null;
+
     if (existing) {
-      const { error } = await supabase.from('habit_completions').delete().eq('id', existing.id);
-      if (error) throw error;
-      setCompletions(completions.filter(c => c.id !== existing.id));
+      setCompletions((prev) => prev.filter((c) => c.id !== existing.id));
     } else {
-      const { data, error } = await supabase
-        .from('habit_completions')
-        .insert({ habit_id: habitId, user_id: user.id, completed_date: date })
-        .select()
-        .single();
-      if (error) throw error;
-      setCompletions([...completions, data]);
+      optimisticCompletionId = `optimistic-${habitId}-${date}`;
+      const optimisticCompletion: HabitCompletion = {
+        id: optimisticCompletionId,
+        habit_id: habitId,
+        user_id: user.id,
+        completed_date: date,
+        notes: '',
+        created_at: new Date().toISOString(),
+      };
+      setCompletions((prev) => [...prev, optimisticCompletion]);
+    }
+
+    try {
+      if (existing) {
+        const { error } = await supabase
+          .from('habit_completions')
+          .delete()
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from('habit_completions')
+          .insert({ habit_id: habitId, user_id: user.id, completed_date: date })
+          .select()
+          .single();
+        if (error) throw error;
+
+        setCompletions((prev) =>
+          prev.map((c) => (c.id === optimisticCompletionId ? data : c))
+        );
+      }
+    } catch (error) {
+      setCompletions(previousCompletions);
+      console.error('Error toggling completion:', error);
+      alert('Failed to update habit completion. Please try again.');
     }
   }
 
