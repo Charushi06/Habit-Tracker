@@ -156,6 +156,7 @@ export function Dashboard() {
                   <button
                     onClick={() => setShowNotifications(!showNotifications)}
                     className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors relative"
+                    aria-label={showNotifications ? 'Close notifications panel' : 'Open notifications panel'}
                   >
                     <Bell className="w-5 h-5" />
                     {reminderCount > 0 && (
@@ -175,12 +176,14 @@ export function Dashboard() {
                   onClick={() => setShowTzSettings(true)}
                   className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                   title="Timezone settings"
+                  aria-label="Open timezone settings"
                 >
                   <Globe2 className="w-5 h-5" />
                 </button>
                 <button
                   onClick={toggleTheme}
                   className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  aria-label={isDarkMode ? 'Switch to light theme' : 'Switch to dark theme'}
                 >
                   {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
@@ -406,6 +409,7 @@ export function Dashboard() {
                               onClick={() => handleEditHabit(habit.id)}
                               className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                               title="Edit habit"
+                              aria-label={`Edit habit ${habit.name}`}
                             >
                               <Edit className="w-4 h-4" />
                             </button>
@@ -413,6 +417,7 @@ export function Dashboard() {
                               onClick={() => setDeletingHabit(habit.id)}
                               className="p-2 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
                               title="Delete habit"
+                              aria-label={`Delete habit ${habit.name}`}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -499,8 +504,13 @@ export function Dashboard() {
         {/* Delete Confirmation */}
         {deletingHabit && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-habit-dialog-title"
+              className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl"
+            >
+              <h3 id="delete-habit-dialog-title" className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 Delete Habit?
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">

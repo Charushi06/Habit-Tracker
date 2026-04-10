@@ -240,9 +240,14 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="habit-form-title"
+        className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto"
+      >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 id="habit-form-title" className="text-2xl font-bold text-gray-900 dark:text-white">
             {habitId ? 'Edit Habit' : 'New Habit'}
           </h2>
           <button
@@ -263,10 +268,11 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="habit-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Habit Name
             </label>
             <input
+              id="habit-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -277,10 +283,11 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="habit-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Description (Optional)
             </label>
             <textarea
+              id="habit-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Add details about your habit..."
@@ -299,6 +306,7 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
                   key={i}
                   type="button"
                   onClick={() => setIcon(i)}
+                  aria-label={`Select icon ${i}`}
                   className={`p-3 text-2xl rounded-lg border-2 transition-all ${icon === i
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
                     : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
@@ -349,7 +357,11 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
             {isCreatingCategory ? (
               <div className="space-y-2">
                 <div className="flex gap-2">
+                  <label htmlFor="new-category-inline" className="sr-only">
+                    New category name
+                  </label>
                   <input
+                    id="new-category-inline"
                     ref={newCategoryInputRef}
                     type="text"
                     value={newCategoryName}
@@ -370,6 +382,7 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
                     type="button"
                     onClick={cancelCreateCategory}
                     disabled={categoryLoading}
+                    aria-label="Cancel creating category"
                     className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     <X className="w-4 h-4" />
