@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import {
   Plus,
   CheckCircle2,
@@ -241,6 +242,10 @@ export function Dashboard() {
               </button>
             ))}
           </div>
+
+          <Helmet>
+            <title>{currentView.charAt(0).toUpperCase() + currentView.slice(1)} | Habit Tracker</title>
+          </Helmet>
 
           {/* Dashboard View */}
           {currentView === 'dashboard' && (
