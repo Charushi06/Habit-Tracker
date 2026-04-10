@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Helmet } from 'react-helmet-async';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useAuth } from '../contexts/AuthContext';
 import { LogIn, UserPlus } from 'lucide-react';
 import { Spinner } from './Spinner';
 
 export function Auth() {
+  useDocumentTitle(isSignUp ? 'Sign Up' : 'Sign In');
+  
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,11 +39,7 @@ export function Auth() {
   }
 
   return (
-    <>
-      <Helmet>
-        <title>{isSignUp ? 'Sign Up' : 'Sign In'} | Habit Tracker</title>
-      </Helmet>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
@@ -140,6 +138,5 @@ export function Auth() {
         </div>
       </div>
     </div>
-    </>
   );
 }

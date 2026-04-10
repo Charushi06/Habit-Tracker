@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Helmet } from 'react-helmet-async';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
   Plus,
   CheckCircle2,
@@ -51,6 +51,10 @@ export function Dashboard() {
   const { theme, toggleTheme } = useTheme();
 
   const [currentView, setCurrentView] = useState<View>('dashboard');
+  
+  // Dynamic page title based on current view
+  useDocumentTitle(currentView.charAt(0).toUpperCase() + currentView.slice(1));
+  
   const [showHabitForm, setShowHabitForm] = useState(false);
   const [editingHabit, setEditingHabit] = useState<string | null>(null);
   const [deletingHabit, setDeletingHabit] = useState<string | null>(null);
@@ -242,10 +246,6 @@ export function Dashboard() {
               </button>
             ))}
           </div>
-
-          <Helmet>
-            <title>{currentView.charAt(0).toUpperCase() + currentView.slice(1)} | Habit Tracker</title>
-          </Helmet>
 
           {/* Dashboard View */}
           {currentView === 'dashboard' && (
