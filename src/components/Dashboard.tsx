@@ -385,8 +385,9 @@ export function Dashboard() {
                         className={`rounded-xl p-6 shadow-sm border hover:shadow-md transition-all duration-300 ${
                           completed
                             ? 'bg-white/80 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 opacity-60'
-                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                            : 'border-gray-200 dark:border-gray-700'
                         }`}
+                        style={!completed ? { backgroundColor: isDarkMode ? `${habit.color}26` : `${habit.color}1A` } : undefined}
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center gap-3 flex-1">
