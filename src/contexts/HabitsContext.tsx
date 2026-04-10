@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { BundleHabit } from '../data/habitBundles';
 import { scheduleHabitReminder, cancelHabitReminder, scheduleEmailReminder, notificationManager } from '../utils/notifications';
 import { getBrowserTimeZone, getZoneOffsetMinutes, nextUtcInstantFromLocalTime } from '../utils/timeUtils';
 
@@ -141,6 +142,8 @@ type HabitsContextType = {
   deleteChallenge: (id: string) => Promise<void>;
   getChallengeProgress: (challengeId: string) => { completed: number; total: number; percentage: number };
   updateChallengeStatus: (challengeId: string) => Promise<void>;
+  // Bundle functions
+  addHabitBundle: (bundleHabits: BundleHabit[]) => Promise<Habit[]>;
 };
 
 const HabitsContext = createContext<HabitsContextType | undefined>(undefined);
@@ -363,6 +366,58 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     if (error) throw error;
     setHabits([data, ...habits]);
     return data;
+  }
+
+  async function addHabitBundle(bundleHabits: BundleHabit[]): Promise<Habit[]> {
+    if (!user) throw new Error('You must be logged in to add a habit bundle.');
+    if (bundleHabits.length === 0) throw new Error('Bundle cannot be empty.');
+
+    // Get existing habit names for duplicate checking
+    const existingNames = new Set(habits.map(h => h.name.trim().toLowerCase()));
+    
+    // Filter out habits that already exist (case-insensitive)
+    const newHabits = bundleHabits.filter(h => !existingNames.has(h.name.trim().toLowerCase()));
+    
+    if (newHabits.length === 0) {
+      throw new Error('All habits in this bundle already exist in your account.');
+    }
+
+    // Prepare habits for bulk insert
+    const habitsToInsert = newHabits.map(bundleHabit => ({
+      name: bundleHabit.name,
+      description: bundleHabit.description || '',
+      icon: bundleHabit.emoji,
+      color: bundleHabit.color,
+      frequency: bundleHabit.frequency,
+      active_days: bundleHabit.frequency === 'daily' 
+        ? [0,1,2,3,4,5,6] 
+        : (bundleHabit.active_days || [0,1,2,3,4,5,6]),
+      target_days: 7,
+      is_active: true,
+      reminder_time: null,
+      reminders_enabled: false,
+      browser_notifications: false,
+      email_notifications: false,
+      snoozed_until: null,
+      snooze_duration: null,
+      user_id: user.id,
+      category: [bundleHabit.name],
+      category_id: null,
+    }));
+
+    // Bulk insert using Supabase
+    const { data, error } = await supabase
+      .from('habits')
+      .insert(habitsToInsert)
+      .select();
+
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error('Failed to create habits from bundle.');
+
+    // Update local state with new habits
+    setHabits([...data, ...habits]);
+    
+    return data as Habit[];
   }
 
   async function updateHabit(id: string, updates: Partial<Habit>) {
@@ -800,6 +855,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     deleteChallenge,
     getChallengeProgress,
     updateChallengeStatus,
+    addHabitBundle,
   };
 
   return <HabitsContext.Provider value={value}>{children}</HabitsContext.Provider>;
