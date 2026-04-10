@@ -8,13 +8,13 @@ type Props = {
 };
 
 export function CategoryManager({ isOpen, onClose }: Props) {
-  const { categories, fetchCategories, createCategory, updateCategory, deleteCategory } = useHabits();
+  const { categories, fetchCategories, addCategory, updateCategory, deleteCategory } = useHabits();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [addError, setAddError] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,8 +23,8 @@ export function CategoryManager({ isOpen, onClose }: Props) {
       setEditingId(null);
       setEditName('');
       setNewCategoryName('');
-      setIsCreating(false);
       setError('');
+      setAddError('');
       setDeleteConfirmId(null);
     }
   }, [isOpen, fetchCategories]);
@@ -34,15 +34,14 @@ export function CategoryManager({ isOpen, onClose }: Props) {
     if (!newCategoryName.trim()) return;
 
     setLoading(true);
-    setError('');
+    setAddError('');
 
     try {
-      await createCategory(newCategoryName.trim());
+      await addCategory(newCategoryName.trim());
       setNewCategoryName('');
-      setIsCreating(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to create category';
-      setError(message);
+      setAddError(message);
     } finally {
       setLoading(false);
     }
@@ -86,6 +85,7 @@ export function CategoryManager({ isOpen, onClose }: Props) {
     setEditingId(category.id);
     setEditName(category.name);
     setError('');
+    setAddError('');
     setDeleteConfirmId(null);
   }
 
@@ -124,53 +124,35 @@ export function CategoryManager({ isOpen, onClose }: Props) {
           )}
 
           {/* Create New Category */}
-          {!isCreating ? (
-            <button
-              onClick={() => setIsCreating(true)}
-              className="w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-blue-500 hover:text-blue-600 dark:hover:border-blue-400 dark:hover:text-blue-400 transition-colors"
-              disabled={loading}
-            >
-              <Plus className="w-5 h-5" />
-              <span className="font-medium">Add New Category</span>
-            </button>
-          ) : (
-            <form onSubmit={handleCreate} className="mb-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <label htmlFor="new-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                New Category Name
-              </label>
-              <div className="flex gap-2">
-                <input
-                  id="new-category"
-                  type="text"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="e.g., Work, Hobbies"
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                  disabled={loading}
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  disabled={loading || !newCategoryName.trim()}
-                  className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Save className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCreating(false);
-                    setNewCategoryName('');
-                    setError('');
-                  }}
-                  disabled={loading}
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </form>
-          )}
+          <form onSubmit={handleCreate} className="mb-5 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
+            <label htmlFor="new-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Add Category
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="new-category"
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="e.g., Work, Hobbies"
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                disabled={loading}
+              />
+              <button
+                type="submit"
+                disabled={loading || !newCategoryName.trim()}
+                className="inline-flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-sm font-medium">Add</span>
+              </button>
+            </div>
+            {addError && (
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                {addError}
+              </p>
+            )}
+          </form>
 
           {/* Categories List */}
           <div className="space-y-2">

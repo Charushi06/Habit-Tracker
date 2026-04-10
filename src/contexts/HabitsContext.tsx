@@ -112,7 +112,7 @@ type HabitsContextType = {
   loading: boolean;
   // Category functions
   fetchCategories: () => Promise<Category[]>;
-  createCategory: (name: string) => Promise<Category>;
+  addCategory: (name: string) => Promise<Category>;
   updateCategory: (id: string, name: string) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   createHabit: (habit: Omit<Habit, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'target_days'> & { target_days?: number }) => Promise<Habit>;
@@ -244,6 +244,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
       loadHabits();
       loadCompletions();
       loadHistory();
+      fetchCategories();
       fetchPrebuiltHabits();
       fetchPrebuiltChallenges();
       fetchChallenges();
@@ -251,6 +252,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
       setHabits([]);
       setCompletions([]);
       setHistory([]);
+      setCategories([]);
       setPrebuiltHabits([]);
       setPrebuiltChallenges([]);
       setChallenges([]);
@@ -460,34 +462,35 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     return data || [];
   }
 
-  async function createCategory(name: string) {
+  async function addCategory(name: string) {
     if (!user) throw new Error('You must be logged in to create a category.');
-    
-    // Check for duplicate name (case-insensitive)
+
     const normalizedName = name.trim();
-    const existingCategory = categories.find(
-      c => c.name.toLowerCase() === normalizedName.toLowerCase()
-    );
-    if (existingCategory) {
-      throw new Error(`Category "${normalizedName}" already exists.`);
+    if (!normalizedName) {
+      throw new Error('Category name is required.');
     }
-    
-    const { data, error } = await supabase
-      .from('categories')
-      .insert({ name: normalizedName, user_id: user.id })
-      .select()
-      .single();
-    
-    if (error) {
-      // Handle unique constraint violation from database
-      if (error.code === '23505') {
+
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .insert({ name: normalizedName, user_id: user.id })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setCategories((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      return data;
+    } catch (err: unknown) {
+      const pgError = err as { code?: string };
+      if (pgError?.code === '23505') {
         throw new Error(`Category "${normalizedName}" already exists.`);
       }
-      throw error;
+      if (err instanceof Error) {
+        throw err;
+      }
+      throw new Error('Failed to create category.');
     }
-    
-    setCategories([...categories, data]);
-    return data;
   }
 
   async function updateCategory(id: string, name: string) {
@@ -513,7 +516,11 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
       throw error;
     }
     
-    setCategories(categories.map(c => c.id === id ? { ...c, name: normalizedName } : c));
+    setCategories((prev) =>
+      prev
+        .map(c => c.id === id ? { ...c, name: normalizedName } : c)
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
   }
 
   async function deleteCategory(id: string) {
@@ -523,7 +530,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
       .eq('id', id);
     
     if (error) throw error;
-    setCategories(categories.filter(c => c.id !== id));
+    setCategories((prev) => prev.filter(c => c.id !== id));
   }
 
   // ——— Prebuilt Habit Functions ——— //
@@ -729,7 +736,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     categories,
     loading,
     fetchCategories,
-    createCategory,
+    addCategory,
     updateCategory,
     deleteCategory,
     createHabit,

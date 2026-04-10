@@ -35,7 +35,7 @@ type Props = {
 };
 
 export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) {
-  const { habits, createHabit, updateHabit, categories, fetchCategories, createCategory } = useHabits();
+  const { habits, createHabit, updateHabit, categories, fetchCategories, addCategory } = useHabits();
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -142,15 +142,14 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
     }
   }
 
-  async function handleCreateCategoryInline(e?: React.FormEvent) {
-    if (e) e.preventDefault();
+  async function handleCreateCategoryInline() {
     if (!newCategoryName.trim()) return;
 
     setCategoryLoading(true);
     setCategoryError('');
 
     try {
-      const newCategory = await createCategory(newCategoryName.trim());
+      const newCategory = await addCategory(newCategoryName.trim());
       setSelectedCategoryId(newCategory.id);
       setCategory([newCategory.name]);
       setNewCategoryName('');
@@ -348,7 +347,7 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
             </div>
 
             {isCreatingCategory ? (
-              <form onSubmit={handleCreateCategoryInline} className="space-y-2">
+              <div className="space-y-2">
                 <div className="flex gap-2">
                   <input
                     ref={newCategoryInputRef}
@@ -360,7 +359,8 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
                     disabled={categoryLoading}
                   />
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleCreateCategoryInline}
                     disabled={categoryLoading || !newCategoryName.trim()}
                     className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm font-medium"
                   >
@@ -378,7 +378,7 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
                 {categoryError && (
                   <p className="text-xs text-red-600 dark:text-red-400">{categoryError}</p>
                 )}
-              </form>
+              </div>
             ) : (
               <select
                 id="category-select"
