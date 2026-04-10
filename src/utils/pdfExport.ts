@@ -53,6 +53,7 @@ type Habit = {
   email_notifications: boolean;
   snoozed_until: string | null;
   snooze_duration: number | null;
+  category_id?: string | null;
   created_at: string;
   updated_at: string;
   completed_dates?: string[];

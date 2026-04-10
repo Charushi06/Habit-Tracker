@@ -4,6 +4,13 @@ import { useAuth } from './AuthContext';
 import { scheduleHabitReminder, cancelHabitReminder, scheduleEmailReminder, notificationManager } from '../utils/notifications';
 import { getBrowserTimeZone, getZoneOffsetMinutes, nextUtcInstantFromLocalTime } from '../utils/timeUtils';
 
+type Category = {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+};
+
 type Habit = {
   id: string;
   user_id: string;
@@ -21,7 +28,9 @@ type Habit = {
   email_notifications: boolean;
   snoozed_until: string | null;
   snooze_duration: number | null;
+  next_reminder_at_utc?: string | null;
   category: string[];
+  category_id?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -100,7 +109,13 @@ type HabitsContextType = {
   challenges: Challenge[];
   completions: HabitCompletion[];
   history: HabitHistory[];
+  categories: Category[];
   loading: boolean;
+  // Category functions
+  fetchCategories: () => Promise<Category[]>;
+  addCategory: (name: string) => Promise<Category>;
+  updateCategory: (id: string, name: string) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   createHabit: (habit: Omit<Habit, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'target_days'> & { target_days?: number }) => Promise<Habit>;
   updateHabit: (id: string, updates: Partial<Habit>) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
@@ -148,6 +163,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [completions, setCompletions] = useState<HabitCompletion[]>([]);
   const [history, setHistory] = useState<HabitHistory[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadHabits = useCallback(async () => {
@@ -224,11 +240,58 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     });
   }, [habits, user?.email, profile?.timezone, profile?.timezone_manual]);
 
+  const fetchCategories = useCallback(async () => {
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('name', { ascending: true });
+    if (error) throw error;
+    setCategories(data || []);
+    return data || [];
+  }, [user?.id]);
+
+  const fetchPrebuiltHabits = useCallback(async () => {
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from('prebuilt_habits')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    setPrebuiltHabits(data || []);
+    return data || [];
+  }, [user?.id]);
+
+  const fetchPrebuiltChallenges = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('prebuilt_challenges')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    setPrebuiltChallenges(data || []);
+    return data || [];
+  }, []);
+
+  const fetchChallenges = useCallback(async () => {
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from('challenges')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    setChallenges(data || []);
+    return data || [];
+  }, [user?.id]);
+
   useEffect(() => {
     if (user) {
       loadHabits();
       loadCompletions();
       loadHistory();
+      fetchCategories();
       fetchPrebuiltHabits();
       fetchPrebuiltChallenges();
       fetchChallenges();
@@ -236,13 +299,14 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
       setHabits([]);
       setCompletions([]);
       setHistory([]);
+      setCategories([]);
       setPrebuiltHabits([]);
       setPrebuiltChallenges([]);
       setChallenges([]);
       notificationManager.cancelAllScheduledNotifications();
       setLoading(false);
     }
-  }, [user, loadHabits, loadCompletions, loadHistory]);
+  }, [user, loadHabits, loadCompletions, loadHistory, fetchCategories, fetchPrebuiltHabits, fetchPrebuiltChallenges, fetchChallenges]);
 
   useEffect(() => {
     if (user && habits.length > 0) setupNotifications();
@@ -432,18 +496,80 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     return new Date(habit.snoozed_until) > new Date();
   }
 
-  // ——— Prebuilt Habit Functions ——— //
-  async function fetchPrebuiltHabits() {
-    if (!user) return [];
-    const { data, error } = await supabase
-      .from('prebuilt_habits')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    setPrebuiltHabits(data || []);
-    return data || [];
+  // ——— Category Functions ——— //
+
+  async function addCategory(name: string) {
+    if (!user) throw new Error('You must be logged in to create a category.');
+
+    const normalizedName = name.trim();
+    if (!normalizedName) {
+      throw new Error('Category name is required.');
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .insert({ name: normalizedName, user_id: user.id })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setCategories((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      return data;
+    } catch (err: unknown) {
+      const pgError = err as { code?: string };
+      if (pgError?.code === '23505') {
+        throw new Error(`Category "${normalizedName}" already exists.`);
+      }
+      if (err instanceof Error) {
+        throw err;
+      }
+      throw new Error('Failed to create category.');
+    }
   }
+
+  async function updateCategory(id: string, name: string) {
+    const normalizedName = name.trim();
+    
+    // Check for duplicate name (excluding the current category)
+    const existingCategory = categories.find(
+      c => c.id !== id && c.name.toLowerCase() === normalizedName.toLowerCase()
+    );
+    if (existingCategory) {
+      throw new Error(`Category "${normalizedName}" already exists.`);
+    }
+    
+    const { error } = await supabase
+      .from('categories')
+      .update({ name: normalizedName })
+      .eq('id', id);
+    
+    if (error) {
+      if (error.code === '23505') {
+        throw new Error(`Category "${normalizedName}" already exists.`);
+      }
+      throw error;
+    }
+    
+    setCategories((prev) =>
+      prev
+        .map(c => c.id === id ? { ...c, name: normalizedName } : c)
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
+  }
+
+  async function deleteCategory(id: string) {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    setCategories((prev) => prev.filter(c => c.id !== id));
+  }
+
+  // ——— Prebuilt Habit Functions ——— //
 
   async function createPrebuiltHabit(habit: Omit<PrebuiltHabit, 'id' | 'user_id' | 'created_at' | 'updated_at'>) {
     if (!user) throw new Error('You must be logged in to create a prebuilt habit.');
@@ -492,27 +618,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
   }
 
   // ——— Challenge Functions ——— //
-  async function fetchPrebuiltChallenges() {
-    const { data, error } = await supabase
-      .from('prebuilt_challenges')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    setPrebuiltChallenges(data || []);
-    return data || [];
-  }
 
-  async function fetchChallenges() {
-    if (!user) return [];
-    const { data, error } = await supabase
-      .from('challenges')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    setChallenges(data || []);
-    return data || [];
-  }
 
   async function createChallenge(challenge: Omit<Challenge, 'id' | 'user_id' | 'created_at' | 'updated_at'>) {
     if (!user) throw new Error('You must be logged in to create a challenge.');
@@ -632,7 +738,12 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     challenges,
     completions,
     history,
+    categories,
     loading,
+    fetchCategories,
+    addCategory,
+    updateCategory,
+    deleteCategory,
     createHabit,
     updateHabit,
     deleteHabit,

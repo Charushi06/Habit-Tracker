@@ -17,6 +17,13 @@ export type Profile = {
   updated_at: string;
 };
 
+export type Category = {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+};
+
 export type Habit = {
   id: string;
   user_id: string;
@@ -38,6 +45,7 @@ export type Habit = {
   created_at: string;
   updated_at: string;
   category: string[];
+  category_id?: string | null;
 };
 
 export type HabitCompletion = {

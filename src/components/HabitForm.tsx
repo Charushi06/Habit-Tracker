@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Save } from 'lucide-react';
+import { X, Save, FolderOpen } from 'lucide-react';
 import { useHabits } from '../hooks/useHabits';
+import { CategoryManager } from './CategoryManager';
 
 const COLORS = [
   '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
@@ -9,10 +10,6 @@ const COLORS = [
 
 const ICONS = ['🎯', '📚', '💪', '🧘', '🏃', '💻', '🎨', '🎵', '✍️', '🌱'];
 
-const CATEGORIES = [
-  "General", "Health", "Fitness", "Learning", "Productivity",
-  "Wellness", "Personal", "Nutrition", "Professional", "Creative"
-];
 
 // New constants for custom days
 const WEEK_DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -38,7 +35,12 @@ type Props = {
 };
 
 export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) {
-  const { habits, createHabit, updateHabit } = useHabits();
+  const { habits, createHabit, updateHabit, categories, fetchCategories, addCategory } = useHabits();
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryError, setCategoryError] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [color, setColor] = useState(COLORS[0]);
@@ -48,7 +50,7 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
   const [frequency, setFrequency] = useState<'daily' | 'custom'>('daily');
   const [activeDays, setActiveDays] = useState<number[]>(ALL_DAYS); // New state
 
-  const [category, setCategory] = useState<string[]>([CATEGORIES[0]]);
+  const [category, setCategory] = useState<string[]>([]);
   const [targetDays, setTargetDays] = useState(7);
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('09:00');
@@ -56,7 +58,14 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [categoryLoading, setCategoryLoading] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
+  const newCategoryInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   useEffect(() => {
     if (habitId) {
@@ -66,9 +75,9 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
         setDescription(habit.description);
         setColor(habit.color);
         setIcon(habit.icon);
-        setCategory(habit.category && habit.category.length > 0 ? habit.category : [CATEGORIES[0]]);
+        setCategory(habit.category && habit.category.length > 0 ? habit.category : []);
+        setSelectedCategoryId(habit.category_id || '');
         
-
         setFrequency(habit.frequency as 'daily' | 'custom');
         setActiveDays(habit.active_days || ALL_DAYS);
         setTargetDays(habit.target_days);
@@ -88,19 +97,22 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
       if (typeof initial.browser_notifications === 'boolean') setBrowserNotifications(initial.browser_notifications);
       if (typeof initial.email_notifications === 'boolean') setEmailNotifications(initial.email_notifications);
       if (initial.reminder_time) setReminderTime(initial.reminder_time);
-      setCategory([CATEGORIES[0]]);
+      setCategory([]);
+      setSelectedCategoryId('');
     } else {
       // Set defaults for new habit
       setFrequency('daily');
       setActiveDays(ALL_DAYS);
-      setCategory([CATEGORIES[0]]);
+      setCategory([]);
+      setSelectedCategoryId('');
     }
-    setError(''); // Clear any previous errors
+    setError('');
+    setCategoryError('');
   }, [habitId, habits, initial]);
 
   // New function to toggle weekdays
   function toggleDay(dayIndex: number) {
-    if (frequency !== 'custom') return; // Should not be possible
+    if (frequency !== 'custom') return;
 
     let newActiveDays;
     if (activeDays.includes(dayIndex)) {
@@ -109,34 +121,51 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
       newActiveDays = [...activeDays, dayIndex].sort();
     }
 
-    // Don't allow unselecting all days
     if (newActiveDays.length > 0) {
       setActiveDays(newActiveDays);
     }
   }
 
-  function toggleCategory(cat: string) {
-    if (cat === 'General') {
-      setCategory(['General']);
-      return;
-    }
-
-    let newCategories = [...category];
-    if (newCategories.includes(cat)) {
-      // Remove it
-      newCategories = newCategories.filter(c => c !== cat);
+  function handleCategoryChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const value = e.target.value;
+    if (value === '__create_new__') {
+      setIsCreatingCategory(true);
+      setTimeout(() => newCategoryInputRef.current?.focus(), 0);
     } else {
-      // Add it
-      newCategories.push(cat);
-      // And remove 'General'
-      newCategories = newCategories.filter(c => c !== 'General');
+      setSelectedCategoryId(value);
+      const selectedCat = categories.find(c => c.id === value);
+      if (selectedCat) {
+        setCategory([selectedCat.name]);
+      } else {
+        setCategory([]);
+      }
     }
+  }
 
-    if (newCategories.length === 0) {
-      setCategory(['General']);
-    } else {
-      setCategory(newCategories);
+  async function handleCreateCategoryInline() {
+    if (!newCategoryName.trim()) return;
+
+    setCategoryLoading(true);
+    setCategoryError('');
+
+    try {
+      const newCategory = await addCategory(newCategoryName.trim());
+      setSelectedCategoryId(newCategory.id);
+      setCategory([newCategory.name]);
+      setNewCategoryName('');
+      setIsCreatingCategory(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create category';
+      setCategoryError(message);
+    } finally {
+      setCategoryLoading(false);
     }
+  }
+
+  function cancelCreateCategory() {
+    setIsCreatingCategory(false);
+    setNewCategoryName('');
+    setCategoryError('');
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -145,7 +174,8 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
   setError('');
 
   const finalActiveDays = frequency === 'daily' ? ALL_DAYS : activeDays;
-  const finalCategory = category.length > 0 ? category : [CATEGORIES[0]];
+  const finalCategory = category.length > 0 ? category : [];
+  const finalCategoryId = selectedCategoryId || null;
 
  try {
   if (habitId) {
@@ -157,6 +187,7 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
       frequency,
       active_days: finalActiveDays,
       category: finalCategory,
+      category_id: finalCategoryId,
       target_days: targetDays,
       reminder_time: remindersEnabled ? reminderTime : null,
       reminders_enabled: remindersEnabled,
@@ -172,6 +203,7 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
       frequency,
       active_days: finalActiveDays,
       category: finalCategory,
+      category_id: finalCategoryId,
       target_days: targetDays,
       is_active: true,
       reminder_time: remindersEnabled ? reminderTime : null,
@@ -300,25 +332,69 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Category (Select one or more)
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => toggleCategory(cat)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    category.includes(cat)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+            <div className="flex items-center justify-between mb-2">
+              <label htmlFor="category-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Category
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsCategoryManagerOpen(true)}
+                className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium flex items-center gap-1"
+              >
+                <FolderOpen className="w-3 h-3" />
+                Manage Categories
+              </button>
             </div>
+
+            {isCreatingCategory ? (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    ref={newCategoryInputRef}
+                    type="text"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="New category name"
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    disabled={categoryLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCreateCategoryInline}
+                    disabled={categoryLoading || !newCategoryName.trim()}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm font-medium"
+                  >
+                    {categoryLoading ? '...' : 'Add'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelCreateCategory}
+                    disabled={categoryLoading}
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                {categoryError && (
+                  <p className="text-xs text-red-600 dark:text-red-400">{categoryError}</p>
+                )}
+              </div>
+            ) : (
+              <select
+                id="category-select"
+                value={selectedCategoryId}
+                onChange={handleCategoryChange}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="">-- Select a category --</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+                <option value="__create_new__">+ Create New Category</option>
+              </select>
+            )}
           </div>
 
           {/* --- MODIFIED FREQUENCY SECTION --- */}
@@ -501,6 +577,11 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
           </div>
         </form>
       </div>
+
+      <CategoryManager
+        isOpen={isCategoryManagerOpen}
+        onClose={() => setIsCategoryManagerOpen(false)}
+      />
     </div>
   );
 }
