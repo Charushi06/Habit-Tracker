@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { HabitsProvider } from './contexts/HabitsContext';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
+import { LandingPage } from './components/LandingPage';
 
 function AppContent() {
   const { user, loading, profile } = useAuth();
+  const [showAuth, setShowAuth] = useState(false);
 
-  console.log('AppContent render:', { user: !!user, loading, profile: !!profile });
+  console.log('AppContent render:', { user: !!user, loading, profile: !!profile, showAuth });
 
   if (loading) {
     return (
@@ -17,7 +20,15 @@ function AppContent() {
     );
   }
 
-  return user ? <Dashboard /> : <Auth />;
+  if (user) {
+    return <Dashboard />;
+  }
+
+  if (showAuth) {
+    return <Auth />;
+  }
+
+  return <LandingPage onGetStarted={() => setShowAuth(true)} />;
 }
 
 function App() {
