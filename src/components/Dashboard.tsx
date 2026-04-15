@@ -58,6 +58,11 @@ export function Dashboard() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [filterCategory, setFilterCategory] = useState('All');
 
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
+  const [halfwayShown, setHalfwayShown] = useState(false);
+  const [almostDoneShown, setAlmostDoneShown] = useState(false);
+
   const today = new Date().toISOString().split('T')[0];
   const todayDay = new Date().getDay();
   const isDarkMode = theme === 'dark';
@@ -83,7 +88,7 @@ export function Dashboard() {
 
   const handleSelectView = (view: View) => {
     setCurrentView(view);
-    setShowMobileMenu(false); // Close menu on selection
+    setShowMobileMenu(false);
   };
 
   if (loading) {
@@ -94,10 +99,8 @@ export function Dashboard() {
     );
   }
 
-  // Filter habits to only those active today
   const allCategories = ['All', ...Array.from(new Set(habits.flatMap(getCategories)))].sort();
 
-  // 2. Filter habits active for today
   const activeHabitsToday = habits.filter((habit) => {
     const frequency = habit.frequency === 'weekly' ? 'custom' : habit.frequency;
     const activeDays =
@@ -105,16 +108,41 @@ export function Dashboard() {
     return activeDays.includes(todayDay);
   });
 
-  // 3. Filter by selected category (checks if array *includes* the filter)
-  const filteredHabitsToday = activeHabitsToday.filter(habit => {
+  const filteredHabitsToday = activeHabitsToday.filter((habit) => {
     if (filterCategory === 'All') return true;
     return getCategories(habit).includes(filterCategory);
   });
 
-  // 4. Update stats based on the *filtered* list
   const completedToday = filteredHabitsToday.filter((h) => isCompleted(h.id, today)).length;
   const totalActive = filteredHabitsToday.length;
+  const completionPercentage = totalActive > 0 ? (completedToday / totalActive) * 100 : 0;
   const reminderCount = habits.filter((h) => h.reminders_enabled && h.reminder_time).length;
+
+  useEffect(() => {
+    if (totalActive === 0) {
+      setHalfwayShown(false);
+      setAlmostDoneShown(false);
+      setShowPopup(false);
+      return;
+    }
+
+    if (completionPercentage >= 70 && !almostDoneShown) {
+      setPopupMessage("You're almost done, keep going!");
+      setShowPopup(true);
+      setAlmostDoneShown(true);
+    } else if (completionPercentage >= 50 && !halfwayShown) {
+      setPopupMessage("You're halfway there!");
+      setShowPopup(true);
+      setHalfwayShown(true);
+    }
+
+    if (completionPercentage < 50) {
+      setHalfwayShown(false);
+      setAlmostDoneShown(false);
+    } else if (completionPercentage < 70) {
+      setAlmostDoneShown(false);
+    }
+  }, [completionPercentage, totalActive, halfwayShown, almostDoneShown]);
 
   const navTabs = [
     { id: 'dashboard', icon: Menu, label: 'Dashboard' },
@@ -142,7 +170,6 @@ export function Dashboard() {
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Mobile Menu Button */}
                 <button
                   onClick={() => setShowMobileMenu(!showMobileMenu)}
                   className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors md:hidden"
@@ -151,7 +178,6 @@ export function Dashboard() {
                   {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 </button>
 
-                {/* Notifications */}
                 <div className="relative">
                   <button
                     onClick={() => setShowNotifications(!showNotifications)}
@@ -171,7 +197,6 @@ export function Dashboard() {
                   />
                 </div>
 
-                {/* Theme Toggle */}
                 <button
                   onClick={() => setShowTzSettings(true)}
                   className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -180,6 +205,7 @@ export function Dashboard() {
                 >
                   <Globe2 className="w-5 h-5" />
                 </button>
+
                 <button
                   onClick={toggleTheme}
                   className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -188,7 +214,6 @@ export function Dashboard() {
                   {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
 
-                {/* Logout */}
                 <button
                   onClick={() => signOut()}
                   className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -199,8 +224,7 @@ export function Dashboard() {
               </div>
             </div>
           </div>
-          
-          {/* Mobile Tabs Dropdown */}
+
           {showMobileMenu && (
             <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 absolute w-full shadow-lg">
               <div className="flex flex-col p-2 space-y-1">
@@ -208,10 +232,11 @@ export function Dashboard() {
                   <button
                     key={tab.id}
                     onClick={() => handleSelectView(tab.id as View)}
-                    className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg font-medium transition-colors ${currentView === tab.id
+                    className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg font-medium transition-colors ${
+                      currentView === tab.id
                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
+                    }`}
                   >
                     <tab.icon className="w-4 h-4" />
                     <span>{tab.label}</span>
@@ -222,17 +247,17 @@ export function Dashboard() {
           )}
         </nav>
 
-        {/* Tabs Navigation (Desktop) */}
         <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full mb-24">
           <div className="hidden md:flex gap-2 mb-8 border-b border-gray-200 dark:border-gray-700">
             {navTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setCurrentView(tab.id as View)}
-                className={`px-4 py-2 font-medium transition-colors ${currentView === tab.id
+                className={`px-4 py-2 font-medium transition-colors ${
+                  currentView === tab.id
                     ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                  }`}
+                }`}
               >
                 <div className="flex items-center gap-2">
                   <tab.icon className="w-4 h-4" />
@@ -242,10 +267,8 @@ export function Dashboard() {
             ))}
           </div>
 
-          {/* Dashboard View */}
           {currentView === 'dashboard' && (
             <>
-              {/* Stats Section */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {[
                   {
@@ -285,6 +308,7 @@ export function Dashboard() {
                   </div>
                 ))}
               </div>
+
               <div
                 role="progressbar"
                 aria-label="Today's habit completion progress"
@@ -296,13 +320,11 @@ export function Dashboard() {
                 {completedToday} of {totalActive} habits completed today
               </div>
 
-              {/* Habits Section */}
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                   Today's Habits
                 </h2>
                 <div className="flex gap-2">
-                  {/* Export button removed from here */}
                   <button
                     onClick={() => setShowHabitForm(true)}
                     className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -313,25 +335,24 @@ export function Dashboard() {
                 </div>
               </div>
 
-              {/* Category Filters */}
               <div className="flex flex-wrap items-center gap-2 mb-6">
                 <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by:</span>
-                {allCategories.map(cat => (
+                {allCategories.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setFilterCategory(cat)}
-                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${filterCategory === cat
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                      filterCategory === cat
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
+                    }`}
                   >
                     {cat}
                   </button>
                 ))}
               </div>
 
-              {/* Habit Cards */}
               {activeHabitsToday.length === 0 ? (
                 <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center border border-gray-200 dark:border-gray-700">
                   <Circle className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
@@ -369,10 +390,11 @@ export function Dashboard() {
                 </div>
               ) : (
                 <ul role="list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredHabitsToday.map((habit) =>{
+                  {filteredHabitsToday.map((habit) => {
                     const completed = isCompleted(habit.id, today);
                     const streak = getStreak(habit.id);
                     const habitCategories = getCategories(habit);
+
                     return (
                       <li
                         role="listitem"
@@ -417,6 +439,7 @@ export function Dashboard() {
                               )}
                             </div>
                           </div>
+
                           <div className="flex items-center gap-1 ml-2">
                             <button
                               onClick={() => handleEditHabit(habit.id)}
@@ -426,6 +449,7 @@ export function Dashboard() {
                             >
                               <Edit className="w-4 h-4" />
                             </button>
+
                             <button
                               onClick={() => setDeletingHabit(habit.id)}
                               className="p-2 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
@@ -444,7 +468,7 @@ export function Dashboard() {
                               <span>{streak} day streak</span>
                             </div>
 
-                            {habitCategories.map(cat => (
+                            {habitCategories.map((cat) => (
                               <span
                                 key={cat}
                                 className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400 rounded-full"
@@ -500,7 +524,7 @@ export function Dashboard() {
 
         <Footer />
         <TimezoneSettings isOpen={showTzSettings} onClose={() => setShowTzSettings(false)} />
-        {/* Habit Form */}
+
         {showHabitForm && (
           <HabitForm
             habitId={editingHabit}
@@ -511,12 +535,8 @@ export function Dashboard() {
           />
         )}
 
-        {/* Export Modal removed from here */}
-
-        {/* Onboarding Modal */}
         <Onboarding />
 
-        {/* Delete Confirmation */}
         {deletingHabit && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div
@@ -525,7 +545,10 @@ export function Dashboard() {
               aria-labelledby="delete-habit-dialog-title"
               className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl"
             >
-              <h3 id="delete-habit-dialog-title" className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              <h3
+                id="delete-habit-dialog-title"
+                className="text-xl font-bold text-gray-900 dark:text-white mb-4"
+              >
                 Delete Habit?
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
@@ -547,6 +570,25 @@ export function Dashboard() {
                   Delete
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {showPopup && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl text-center">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                Reward Unlocked 🎉
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                {popupMessage}
+              </p>
+              <button
+                onClick={() => setShowPopup(false)}
+                className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         )}
