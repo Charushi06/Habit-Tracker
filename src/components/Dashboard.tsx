@@ -149,7 +149,7 @@ export function Dashboard() {
       setPopupMessage("You're almost done, keep going!");
       setShowPopup(true);
       setAlmostDoneShown(true);
-      if (!halfwayShown) setHalfwayShown(true); // prevent 50% popup after 70% is shown
+      if (!halfwayShown) setHalfwayShown(true);
     } else if (milestonePercentage >= 50 && !halfwayShown) {
       setPopupMessage("You're halfway there!");
       setShowPopup(true);
@@ -588,23 +588,66 @@ export function Dashboard() {
         )}
 
         {showPopup && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl text-center">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                Reward Unlocked 🎉
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                {popupMessage}
-              </p>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="relative max-w-sm w-full rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 text-white">
+
+              {/* Close X */}
               <button
                 onClick={() => setShowPopup(false)}
-                className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="absolute top-3 right-3 text-white/70 hover:text-white transition-colors"
+                aria-label="Close popup"
               >
-                Close
+                <X className="w-5 h-5" />
               </button>
+
+              {/* Body */}
+              <div className="px-8 py-10 text-center">
+
+                {/* Icon */}
+                <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
+                  <span className="text-4xl">
+                    {milestonePercentage >= 70 ? '🔥' : '⚡'}
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-2xl font-bold mb-2 tracking-tight">
+                  Great Progress 🎉
+                </h3>
+
+                {/* Message */}
+                <p className="text-base text-white/90 leading-relaxed mb-6">
+                  {milestonePercentage >= 70
+                    ? "You're almost done! Just a little more — finish strong today 💪"
+                    : "You're halfway there! Keep going, you're doing great 🚀"}
+                </p>
+
+                {/* Progress bar */}
+                <div className="mb-3 bg-white/20 rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-white transition-all duration-500"
+                    style={{ width: `${Math.round(milestonePercentage)}%` }}
+                  />
+                </div>
+
+                {/* Progress label */}
+                <p className="text-sm text-white/75 mb-6">
+                  {Math.round(milestonePercentage)}% of today's habits completed
+                </p>
+
+                {/* CTA Button */}
+                <button
+                  onClick={() => setShowPopup(false)}
+                  className="w-full py-3 rounded-xl bg-white text-blue-600 font-semibold text-sm hover:bg-white/90 active:scale-95 transition-all duration-150 shadow-md"
+                >
+                  Keep going →
+                </button>
+
+              </div>
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
