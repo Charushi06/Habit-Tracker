@@ -132,6 +132,36 @@ type HabitsContextType = {
   createPrebuiltHabit: (habit: Omit<PrebuiltHabit, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<PrebuiltHabit>;
   updatePrebuiltHabit: (id: string, updates: Partial<PrebuiltHabit>) => Promise<void>;
   deletePrebuiltHabit: (id: string) => Promise<void>;
+export const HABIT_BUNDLES = [
+  {
+    id: 'morning_routine',
+    name: 'Morning Routine',
+    icon: '🌅',
+    description: 'Start your day right',
+    habits: ['Drink Water', 'Healthy Breakfast', 'Meditate', 'Exercise'],
+  },
+  {
+    id: 'fitness_goals',
+    name: 'Fitness Goals',
+    icon: '💪',
+    description: 'Build a stronger body',
+    habits: ['Exercise', 'Walk', 'Drink Water'],
+  },
+  {
+    id: 'learning',
+    name: 'Learning & Growth',
+    icon: '🧠',
+    description: 'Expand your mind daily',
+    habits: ['Read Books', 'Learn Language', 'Journal'],
+  },
+  {
+    id: 'wellness',
+    name: 'Wellness & Mindfulness',
+    icon: '🧘',
+    description: 'Take care of your mental health',
+    habits: ['Meditate', 'Journal', 'Walk'],
+  },
+];
   seedDefaultPrebuiltHabits: () => Promise<void>;
   // Challenge functions
   fetchPrebuiltChallenges: () => Promise<PrebuiltChallenge[]>;
