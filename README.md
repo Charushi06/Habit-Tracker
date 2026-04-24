@@ -166,4 +166,4 @@ This project is open source and available under the [MIT License](LICENSE).
 - Deployed on [Netlify](https://www.netlify.com/)
 
 ---
-
+## Included as a project for Nexus Spring of Code open source

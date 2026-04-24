@@ -12,7 +12,11 @@ import NotFound from './components/NotFound';
 function AppContent() {
   const { user, loading, profile } = useAuth();
 
-  console.log('AppContent render:', { user: !!user, loading, profile: !!profile });
+  console.log('AppContent render:', {
+    user: !!user,
+    loading,
+    profile: !!profile,
+  });
 
   if (loading) {
     return (

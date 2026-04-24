@@ -79,6 +79,7 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
           >
             Get Started — it's free
           </button>
+          <p className="text-sm text-gray-400 dark:text-gray-500">No account required</p>
         
         </div>
 
