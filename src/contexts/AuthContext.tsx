@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase, Profile } from "../lib/supabase";
 import { getBrowserTimeZone } from "../utils/timeUtils";
@@ -10,6 +10,7 @@ type AuthContextType = {
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
   updateTimezone: (timezone: string, manual: boolean) => Promise<void>;
 };
@@ -142,6 +143,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
   }
 
+  async function signInWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account',
+        },
+      },
+    });
+    if (error) throw error;
+  }
+
   async function updateProfile(updates: Partial<Profile>) {
     if (!user) return;
 
@@ -186,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, loading, signUp, signIn, signOut, updateProfile, updateTimezone }}
+      value={{ user, profile, loading, signUp, signIn, signOut, signInWithGoogle, updateProfile, updateTimezone }}
     >
       {children}
     </AuthContext.Provider>
