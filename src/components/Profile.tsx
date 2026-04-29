@@ -8,6 +8,7 @@ import { TimezoneSettings } from './TimezoneSettings';
 import { ExportModal } from './ExportModal';
 import { supabase } from '../lib/supabase';
 import jsPDF from 'jspdf';
+import { getBadgeDetails, Badge } from '../utils/badgeLogic';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
@@ -39,6 +40,7 @@ export function Profile() {
 
     // Calculate longest streak across all habits
     const longestStreak = habits.length > 0 ? Math.max(...habits.map(h => getStreak(h.id))) : 0;
+    const badge = getBadgeDetails(longestStreak);
 
     // Calculate completion rate (completions vs expected completions in last 30 days)
     let expectedCompletions = 0;
@@ -497,6 +499,17 @@ export function Profile() {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {profile.full_name || 'User'}
               </h1>
+              {/* Badge Display Section */}
+{badge && (
+  <div className="flex items-center gap-2 mt-2 px-3 py-1 rounded-full border w-fit" 
+       style={{ borderColor: badge.color, backgroundColor: `${badge.color}15` }}>
+    <span className="text-xl">{badge.icon}</span>
+    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: badge.color }}>
+      {badge.title}
+    </span>
+  </div>
+)}
+             
               {!isEditing ? (
                 <button
                   onClick={() => setIsEditing(true)}
