@@ -25,7 +25,7 @@ export function Profile() {
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const badge = getBadgeDetails(longestStreak);
+
   // Calculate habit statistics
   const stats = useMemo(() => {
     const totalHabits = habits.length;
