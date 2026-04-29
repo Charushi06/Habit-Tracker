@@ -25,7 +25,7 @@ export function Profile() {
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const badge = getBadgeDetails(longestStreak);
   // Calculate habit statistics
   const stats = useMemo(() => {
     const totalHabits = habits.length;
@@ -505,7 +505,7 @@ export function Profile() {
        style={{ borderColor: badge.color, backgroundColor: `${badge.color}15` }}>
     <span className="text-xl">{badge.icon}</span>
     <span className="text-xs font-bold uppercase tracking-wider" style={{ color: badge.color }}>
-      {badge.name}
+      {badge.title}
     </span>
   </div>
 )}
