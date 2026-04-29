@@ -173,6 +173,26 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
   setSaving(true);
   setError('');
 
+  const trimmedName = name.trim();
+
+  //Empty / whitespace check
+  if (!trimmedName) {
+      setError ("Habit name cannot be empty");
+      setSaving(false);
+      return;
+}
+ //Duplicate check (ignore case + allow edit mode)
+  const isDuplicate = habits.some(
+  (h:any) =>
+  h.name.toLowerCase() === trimmedName.toLowercase() && h.id !== habitId
+  );
+
+  if (isDuplicate) {
+    setError ("Habit already exists");
+    setSaving (false);
+    return;
+  }
+
   const finalActiveDays = frequency === 'daily' ? ALL_DAYS : activeDays;
   const finalCategory = category.length > 0 ? category : [];
   const finalCategoryId = selectedCategoryId || null;
@@ -180,7 +200,7 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
  try {
   if (habitId) {
     await updateHabit(habitId, {
-      name,
+      name: trimmedName,
       description,
       color,
       icon,
@@ -196,7 +216,7 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
     });
   } else {
     const createdHabit = await createHabit({
-      name,
+      name: trimmedName,
       description,
       color,
       icon,
