@@ -132,6 +132,7 @@ type HabitsContextType = {
   createPrebuiltHabit: (habit: Omit<PrebuiltHabit, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<PrebuiltHabit>;
   updatePrebuiltHabit: (id: string, updates: Partial<PrebuiltHabit>) => Promise<void>;
   deletePrebuiltHabit: (id: string) => Promise<void>;
+  }
 export const HABIT_BUNDLES = [
   {
     id: 'morning_routine',
