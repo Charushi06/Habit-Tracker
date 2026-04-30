@@ -1,16 +1,22 @@
-import { useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { HabitsProvider } from './contexts/HabitsContext';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
-import { LandingPage } from './components/LandingPage';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsConditions from './components/TermsConditions';
+import NotFound from './components/NotFound';
+// import Footer from './components/Footer';
 
 function AppContent() {
   const { user, loading, profile } = useAuth();
-  const [showAuth, setShowAuth] = useState(false);
 
-  console.log('AppContent render:', { user: !!user, loading, profile: !!profile, showAuth });
+  console.log('AppContent render:', {
+    user: !!user,
+    loading,
+    profile: !!profile,
+  });
 
   if (loading) {
     return (
@@ -20,15 +26,24 @@ function AppContent() {
     );
   }
 
-  if (user) {
-    return <Dashboard />;
-  }
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Auth />} />
+          <Route
+            path="/dashboard"
+            element={user ? <Dashboard /> : <Navigate to="/" replace />}
+          />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsConditions />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
 
-  if (showAuth) {
-    return <Auth />;
-  }
-
-  return <LandingPage onGetStarted={() => setShowAuth(true)} />;
+      {/* <Footer /> */}
+    </div>
+  );
 }
 
 function App() {
