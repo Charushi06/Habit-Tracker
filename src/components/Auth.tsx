@@ -2,20 +2,25 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogIn, UserPlus } from 'lucide-react';
 import { Spinner } from './Spinner';
-
-
+import ForgotPassword from './ForgotPassword';
 interface AuthProps {
   onGoHome: () => void;
 }
 
-export function Auth({ onGoHome }: AuthProps) {
+
+export function Auth({onGoHome}: AuthProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { signIn, signUp, signInWithGoogle } = useAuth();
+
+  if (showForgotPassword) {
+    return <ForgotPassword onBack={() => setShowForgotPassword(false)} />;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -96,9 +101,20 @@ export function Auth({ onGoHome }: AuthProps) {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
+            <div className="flex justify-between items-center mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              {!isSignUp && (
+                <button
+                  type="button" // ✅ type="button" prevents form submission on click
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-indigo-500 hover:underline font-medium"
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
             <input
               id="password"
               type="password"
