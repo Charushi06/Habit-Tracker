@@ -3,6 +3,8 @@ import { Sparkles, Flame, Target, X } from 'lucide-react';
 import { useHabits } from '../hooks/useHabits';
 import { useAuth } from '../contexts/AuthContext';
 import { HabitForm } from './HabitForm';
+import { HABIT_BUNDLES } from '../contexts/HabitsContext';
+
 
 export function SuggestedHabits({ shouldSeedDefaults = false, onHabitAdded, onSavingChange }: { shouldSeedDefaults?: boolean; onHabitAdded?: () => void; onSavingChange?: (saving: boolean) => void }) {
   const { createHabit, habits, fetchPrebuiltHabits, seedDefaultPrebuiltHabits, prebuiltHabits, refreshHabits } = useHabits();
@@ -169,7 +171,90 @@ export function SuggestedHabits({ shouldSeedDefaults = false, onHabitAdded, onSa
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          {/* BUNDLE SECTION */}
+<div className="mb-10">
+  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">
+    ✨ Quick Start with a Bundle
+  </h3>
+  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+    Add multiple related habits at once
+  </p>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    {HABIT_BUNDLES.map(bundle => {
+      const bundleHabits = availableHabits.filter(h =>
+        bundle.habits.includes(h.name)
+      );
+      if (bundleHabits.length === 0) return null;
+      return (
+        <div
+          key={bundle.id}
+          className="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 hover:border-blue-400 transition-all"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">{bundle.icon}</span>
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
+                {bundle.name}
+              </h4>
+              <p className="text-xs text-gray-500">{bundle.description}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1 mb-3">
+            {bundleHabits.map(h => (
+              <span
+                key={h.id}
+                className="text-xs px-2 py-1 rounded-full"
+                style={{ backgroundColor: h.color + '20', color: h.color }}
+              >
+                {h.icon} {h.name}
+              </span>
+            ))}
+          </div>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={async (e) => {
+              e.stopPropagation();
+              setSaving(true);
+              try {
+                for (const h of bundleHabits) {
+                  await createHabit({
+                    name: h.name,
+                    description: h.description,
+                    color: h.color,
+                    icon: h.icon,
+                    frequency: h.frequency === 'weekly' ? 'custom' : h.frequency as 'daily' | 'custom',
+                    active_days: h.frequency === 'weekly' ? [1,2,3,4,5] : [],
+                    target_days: h.target_days,
+                    category: [h.category],
+                    is_active: true,
+                    reminder_time: null,
+                    reminders_enabled: false,
+                    browser_notifications: false,
+                    email_notifications: false,
+                    snoozed_until: null,
+                    snooze_duration: null,
+                  });
+                }
+                await refreshHabits();
+                onHabitAdded?.();
+              } catch(err) {
+                console.error(err);
+              } finally {
+                setSaving(false);
+              }
+            }}
+            className="w-full py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {saving ? 'Adding...' : `Add All ${bundleHabits.length} Habits`}
+          </button>
+        </div>
+      );
+    })}
+  </div>
+</div>
+{/* END BUNDLE SECTION */}
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {availableHabits.map((habit, index) => {
           const isSelected = selectedIndices.has(index);
           return (
@@ -386,4 +471,4 @@ export function Onboarding({ onOpenPrebuiltManager }: { onOpenPrebuiltManager?: 
       </div>
     </div>
   );
-}
++ }
