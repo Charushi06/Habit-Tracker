@@ -36,6 +36,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state change:", event, { user: !!session?.user });
+
+      // ✅ KEY FIX: When it's a password recovery link,
+      // do NOT set the user or load the profile.
+      // Let App.tsx handle showing the UpdatePassword page instead.
+      if (event === 'PASSWORD_RECOVERY') {
+        setLoading(false);
+        return; // ← stop here, don't run anything below
+      }
+
       (async () => {
         setUser(session?.user ?? null);
         if (session?.user) {

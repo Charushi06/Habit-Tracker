@@ -11,7 +11,9 @@ import { UpdatePassword } from './components/UpdatePassword';
 function AppContent() {
   const { user, loading, profile } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
-  const [showUpdatePassword, setShowUpdatePassword] = useState(false);
+  const [showUpdatePassword, setShowUpdatePassword] = useState(() => {
+    return window.location.hash.includes('type==recovery');
+  });
 
   useEffect(() => {
     // Detect when user arrives via password reset email link
