@@ -9,7 +9,7 @@ export function SuggestedHabits({ shouldSeedDefaults = false, onHabitAdded, onSa
   const [prebuiltHabitsLoaded, setPrebuiltHabitsLoaded] = useState(false);
   const [showHabitForm, setShowHabitForm] = useState(false);
   const [initialDraft, setInitialDraft] = useState<{ name: string; description: string; color: string; icon: string; frequency: 'daily' | 'weekly' | 'custom'; target_days: number; } | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const didInitRef = useRef(false);
 
@@ -37,8 +37,8 @@ export function SuggestedHabits({ shouldSeedDefaults = false, onHabitAdded, onSa
 
   // Notify parent component of saving state changes
   useEffect(() => {
-    onSavingChange?.(saving);
-  }, [saving, onSavingChange]);
+    onSavingChange?.(savingIndex !== null);
+  }, [savingIndex, onSavingChange]);
 
   // Filter out habits that user already has
   const existingHabitNames = new Set(habits.map(h => h.name.toLowerCase()));
@@ -63,7 +63,7 @@ export function SuggestedHabits({ shouldSeedDefaults = false, onHabitAdded, onSa
   const handleQuickAdd = async (habitIndex: number) => {
     const h = availableHabits[habitIndex];
     const freq = h.frequency === 'weekly' ? 'custom' : (h.frequency as 'daily' | 'custom');
-    setSaving(true);
+    setSavingIndex(habitIndex);
     try {
       await createHabit({
         name: h.name,
@@ -87,7 +87,7 @@ export function SuggestedHabits({ shouldSeedDefaults = false, onHabitAdded, onSa
       // Call the callback to close the onboarding modal after adding a habit
       onHabitAdded?.();
     } finally {
-      setSaving(false);
+      setSavingIndex(null);
     }
   };
 
@@ -104,7 +104,7 @@ export function SuggestedHabits({ shouldSeedDefaults = false, onHabitAdded, onSa
   const handleAddSelected = async () => {
     if (selectedIndices.size === 0) return;
 
-    setSaving(true);
+    setSavingIndex(-1);
     try {
       for (const index of Array.from(selectedIndices)) {
         const h = availableHabits[index];
@@ -135,7 +135,7 @@ export function SuggestedHabits({ shouldSeedDefaults = false, onHabitAdded, onSa
       setSelectedIndices(new Set()); // Clear selection after adding
       onHabitAdded?.(); // Call the callback to close the onboarding modal after adding a habit
     } finally {
-      setSaving(false);
+      setSavingIndex(-1);
     }
   };
   // no-op legacy handler removed; customization now uses HabitForm
@@ -251,10 +251,10 @@ export function SuggestedHabits({ shouldSeedDefaults = false, onHabitAdded, onSa
                     e.stopPropagation();
                     handleQuickAdd(index);
                   }}
-                  disabled={saving}
+                  disabled={savingIndex === index}
                   className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                 >
-                  {saving ? 'Adding...' : 'Add'}
+                  {savingIndex === index ? 'Adding...' : 'Add'}
                 </button>
               </div>
             </div>
@@ -266,7 +266,7 @@ export function SuggestedHabits({ shouldSeedDefaults = false, onHabitAdded, onSa
         <div className="flex justify-center mb-8">
           <button
             onClick={handleAddSelected}
-            disabled={saving}
+            disabled={savingIndex !== null}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <span>Add Selected ({selectedIndices.size})</span>
