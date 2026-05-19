@@ -212,11 +212,19 @@ export function Challenges() {
                       </div>
                     </div>
                     <button
-                      onClick={() => deleteChallenge(challenge.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+  onClick={() => {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this challenge? Your progress will be lost."
+      )
+    ) {
+      deleteChallenge(challenge.id);
+    }
+  }}
+  className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
+>
+  <Trash2 className="w-4 h-4" />
+</button>
                   </div>
 
                   <div className="space-y-3">
@@ -284,7 +292,15 @@ export function Challenges() {
                       </div>
                     </div>
                     <button
-                      onClick={() => deleteChallenge(challenge.id)}
+                    onClick={() => {
+  if (
+    window.confirm(
+      "Are you sure you want to delete this challenge? Your progress will be lost."
+    )
+  ) {
+    deleteChallenge(challenge.id);
+  }
+}}
                       className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -359,7 +375,15 @@ export function Challenges() {
                       </div>
                     </div>
                     <button
-                      onClick={() => deleteChallenge(challenge.id)}
+                     onClick={() => {
+  if (
+    window.confirm(
+      "Are you sure you want to delete this challenge? Your progress will be lost."
+    )
+  ) {
+    deleteChallenge(challenge.id);
+  }
+}}
                       className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
