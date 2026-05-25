@@ -5,6 +5,28 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-pub
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Runtime diagnostics: warn in browser console when env variables are not configured.
+if (typeof window !== 'undefined') {
+  try {
+    const usingPlaceholderUrl = supabaseUrl.includes('your-project-id') || supabaseUrl === '';
+    const usingPlaceholderKey = supabaseAnonKey.includes('your-anon-public-api-key') || supabaseAnonKey === '';
+
+    if (usingPlaceholderUrl || usingPlaceholderKey) {
+      // Keep message concise and actionable without leaking keys
+      // eslint-disable-next-line no-console
+      console.warn(
+        'Supabase env not configured: create a .env with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (see README).'
+      );
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('Supabase URL:', supabaseUrl);
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('Supabase runtime diagnostic check failed', e);
+  }
+}
+
 export type Profile = {
   id: string;
   email: string;

@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
-    "@supabase/supabase-js": "^2.57.4",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.1",
     "@types/html2canvas": "^0.5.35",
     "chart.js": "^4.5.1",
     "html2canvas": "^1.4.1",

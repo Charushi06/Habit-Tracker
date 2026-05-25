@@ -32,6 +32,7 @@ import { Profile } from './Profile';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useHabits } from '../hooks/useHabits';
+import { useToast } from '../contexts/ToastContext';
 import { Footer } from './Footer';
 import { TimezoneSettings } from './TimezoneSettings';
 
@@ -48,6 +49,7 @@ export function Dashboard() {
   const { habits, loading, toggleCompletion, isCompleted, getStreak, deleteHabit } = useHabits();
   const { signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { showSuccess, showError } = useToast();
 
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [showHabitForm, setShowHabitForm] = useState(false);
@@ -80,9 +82,10 @@ export function Dashboard() {
     try {
       await deleteHabit(habitId);
       setDeletingHabit(null);
+      showSuccess('Habit deleted successfully');
     } catch (error) {
       console.error('Error deleting habit:', error);
-      alert('Failed to delete habit. Please try again.');
+      showError('Failed to delete habit. Please try again.');
     }
   };
 

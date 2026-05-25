@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { HabitsProvider } from './contexts/HabitsContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
 import { LandingPage } from './components/LandingPage';
@@ -37,9 +38,11 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <HabitsProvider>
-          <AppContent />
-        </HabitsProvider>
+        <ToastProvider>
+          <HabitsProvider>
+            <AppContent />
+          </HabitsProvider>
+        </ToastProvider>
       </ThemeProvider>
     </AuthProvider>
   );
