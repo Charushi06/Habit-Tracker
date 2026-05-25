@@ -113,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("Creating profile for user:", data.user.id);
       const { error: profileError } = await supabase.from("profiles").insert({
         id: data.user.id,
-        email: data.user.email!,
+        email: data.user.email ?? email,
         full_name: fullName,
         theme: "light",
       });
@@ -124,8 +124,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log("Profile created successfully");
-      console.log("Auto-signing in user after signup...");
-      await signIn(email, password);
+
+      // If Supabase returned a session, auto-sign in. Otherwise an email
+      // confirmation flow is likely enabled and no session will exist yet.
+      if (data.session) {
+        console.log("Auto-signing in user after signup...");
+        await signIn(email, password);
+      } else {
+        console.log("No session returned after signup — email confirmation likely required.");
+      }
     }
   }
 

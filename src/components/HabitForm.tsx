@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Save, FolderOpen } from 'lucide-react';
 import { useHabits } from '../hooks/useHabits';
 import { CategoryManager } from './CategoryManager';
+import { useToast } from '../contexts/ToastContext';
 
 const COLORS = [
   '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
@@ -61,6 +62,7 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
   const [categoryLoading, setCategoryLoading] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
   const newCategoryInputRef = useRef<HTMLInputElement>(null);
+  const { showSuccess, showError } = useToast();
 
   // Fetch categories on mount
   useEffect(() => {
@@ -183,8 +185,7 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
 }
  //Duplicate check (ignore case + allow edit mode)
   const isDuplicate = habits.some(
-  (h:any) =>
-  h.name.toLowerCase() === trimmedName.toLowercase() && h.id !== habitId
+    (h: any) => h.name.toLowerCase() === trimmedName.toLowerCase() && h.id !== habitId
   );
 
   if (isDuplicate) {
@@ -237,13 +238,18 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
       onHabitCreated(createdHabit.id);
     }
   }
-
+  if (habitId) {
+    showSuccess('Habit updated successfully');
+  } else {
+    showSuccess('Habit added successfully');
+  }
   onClose();
 } catch (error: unknown) {
   const errorMessage = error instanceof Error
     ? error.message
     : 'An error occurred while saving the habit.';
   setError(errorMessage);
+  showError(errorMessage);
 
   setTimeout(() => {
     errorRef.current?.scrollIntoView({

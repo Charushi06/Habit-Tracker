@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { scheduleHabitReminder, cancelHabitReminder, scheduleEmailReminder, notificationManager } from '../utils/notifications';
 import { getBrowserTimeZone, getZoneOffsetMinutes, nextUtcInstantFromLocalTime } from '../utils/timeUtils';
+import { useToast } from './ToastContext';
 
 type Category = {
   id: string;
@@ -165,6 +166,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
   const [history, setHistory] = useState<HabitHistory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const { showError } = useToast();
 
   const loadHabits = useCallback(async () => {
     try {
@@ -476,7 +478,7 @@ export function HabitsProvider({ children }: HabitsProviderProps) {
     } catch (error) {
       setCompletions(previousCompletions);
       console.error('Error toggling completion:', error);
-      alert('Failed to update habit completion. Please try again.');
+      showError('Failed to update habit completion. Please try again.');
     }
   }
 
