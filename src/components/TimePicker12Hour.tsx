@@ -31,12 +31,13 @@ export function TimePicker12Hour({ value, onChange, className = '' }: TimePicker
   };
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center gap-2 ${className}`} role="group" aria-label="Time picker (12-hour format)">
       {/* Hour Select */}
       <select
         value={time12.hour}
         onChange={(e) => handleHourChange(parseInt(e.target.value, 10))}
-        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center font-mono"
+        aria-label="Hour"
+        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center font-mono focus:outline-none"
       >
         {Array.from({ length: 12 }, (_, i) => i + 1).map(hour => (
           <option key={hour} value={hour}>
@@ -45,13 +46,14 @@ export function TimePicker12Hour({ value, onChange, className = '' }: TimePicker
         ))}
       </select>
 
-      <span className="text-gray-500 dark:text-gray-400">:</span>
+      <span className="text-gray-500 dark:text-gray-400" aria-hidden="true">:</span>
 
       {/* Minute Select */}
       <select
         value={time12.minute}
         onChange={(e) => handleMinuteChange(parseInt(e.target.value, 10))}
-        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center font-mono"
+        aria-label="Minute"
+        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center font-mono focus:outline-none"
       >
         {Array.from({ length: 12 }, (_, i) => i * 5).map(minute => (
           <option key={minute} value={minute}>
@@ -61,11 +63,12 @@ export function TimePicker12Hour({ value, onChange, className = '' }: TimePicker
       </select>
 
       {/* AM/PM Toggle */}
-      <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+      <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden" role="group" aria-label="AM or PM selector">
         <button
           type="button"
           onClick={() => handleAmPmChange(true)}
-          className={`px-3 py-2 text-sm font-medium transition-colors ${
+          aria-pressed={time12.isAM}
+          className={`px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:z-10 ${
             time12.isAM
               ? 'bg-blue-500 text-white'
               : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
@@ -76,7 +79,8 @@ export function TimePicker12Hour({ value, onChange, className = '' }: TimePicker
         <button
           type="button"
           onClick={() => handleAmPmChange(false)}
-          className={`px-3 py-2 text-sm font-medium transition-colors ${
+          aria-pressed={!time12.isAM}
+          className={`px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:z-10 ${
             !time12.isAM
               ? 'bg-blue-500 text-white'
               : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
