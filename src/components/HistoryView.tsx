@@ -164,16 +164,32 @@ export function HistoryView() {
       </div>
 
       {filteredHistory.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center border border-gray-200 dark:border-gray-700">
-          <History className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            {searchTerm || filterAction !== 'all' ? 'No matching history' : 'No history yet'}
+        <div className="bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/80 rounded-2xl p-12 text-center border border-gray-150 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-blue-100/50 dark:bg-blue-900/20 rounded-full blur-xl transform scale-125 animate-pulse"></div>
+            <div className="relative bg-white dark:bg-gray-700 p-4 rounded-full shadow-md border border-gray-100 dark:border-gray-600">
+              <History className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            {searchTerm || filterAction !== 'all' ? 'No matching history records' : 'Your history is clear'}
           </h3>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mb-6">
             {searchTerm || filterAction !== 'all' 
-              ? 'Try adjusting your search or filter'
-              : 'Start creating habits to see your activity history'}
+              ? 'We couldn\'t find any history entries matching your current search criteria or category filter.'
+              : 'Once you create, update, or complete your habits, a timeline log of all activities will appear here.'}
           </p>
+          {(searchTerm || filterAction !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setFilterAction('all');
+              }}
+              className="px-4 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Reset Filters
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-8">
