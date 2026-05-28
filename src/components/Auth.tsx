@@ -17,15 +17,49 @@ export function Auth({ onGoHome }: AuthProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp, signInWithGoogle } = useAuth();
 
+  const getPasswordStrength = (pass: string) => {
+    if (!pass) return { score: 0, label: '', color: 'bg-gray-200 w-0' };
+    let score = 0;
+    if (pass.length >= 6) score++;
+    if (pass.length >= 10) score++;
+    if (/[A-Z]/.test(pass)) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+    if (score <= 2) return { score, label: 'Weak', color: 'bg-red-500 w-1/3' };
+    if (score <= 4) return { score, label: 'Moderate', color: 'bg-yellow-500 w-2/3' };
+    return { score, label: 'Strong', color: 'bg-green-500 w-full' };
+  };
+
+  const strength = getPasswordStrength(password);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (isSignUp) {
+      if (!fullName.trim()) {
+        setError('Please enter your full name.');
+        return;
+      }
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters long.');
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
       console.log('Attempting auth:', { isSignUp, email });
       if (isSignUp) {
-        await signUp(email, password, fullName);
+        await signUp(email, password, fullName.trim());
         console.log('Sign up completed - should redirect to dashboard now');
       } else {
         await signIn(email, password);
@@ -44,15 +78,15 @@ export function Auth({ onGoHome }: AuthProps) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
         <div>
-            <button
+          <button
             onClick={onGoHome}
-            className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
           >
             ← Home
           </button>
         </div>
         <div className="text-center mb-8">
-          <button className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4"
+          <button className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
            onClick={onGoHome}>
             <span className="text-2xl font-bold text-white">HT</span>
           </button>
@@ -74,7 +108,7 @@ export function Auth({ onGoHome }: AuthProps) {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
                 placeholder="John Doe"
               />
             </div>
@@ -90,7 +124,7 @@ export function Auth({ onGoHome }: AuthProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
               placeholder="you@example.com"
             />
           </div>
@@ -106,9 +140,20 @@ export function Auth({ onGoHome }: AuthProps) {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
               placeholder="••••••••"
             />
+            {isSignUp && password && (
+              <div className="mt-2 space-y-1">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-500">Password strength:</span>
+                  <span className="font-semibold text-gray-750">{strength.label}</span>
+                </div>
+                <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div className={`h-full transition-all duration-300 ${strength.color}`} />
+                </div>
+              </div>
+            )}
           </div>
 
           {error && (
