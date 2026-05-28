@@ -23,6 +23,7 @@ export function Profile() {
   });
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Calculate habit statistics
@@ -361,16 +362,26 @@ export function Profile() {
   };
 
   const handleSave = async () => {
+    setError('');
+    const trimmedName = formData.full_name.trim();
+    if (!trimmedName) {
+      setError('Full Name cannot be empty.');
+      return;
+    }
+    if (trimmedName.length > 50) {
+      setError('Full Name must be 50 characters or less.');
+      return;
+    }
     setSaving(true);
     try {
       await updateProfile({
-        full_name: formData.full_name,
+        full_name: trimmedName,
         theme: formData.theme as 'light' | 'dark',
       });
       setIsEditing(false);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('Failed to update profile. Please try again.');
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setError('Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -381,6 +392,7 @@ export function Profile() {
       full_name: profile?.full_name || '',
       theme: profile?.theme || 'light',
     });
+    setError('');
     setIsEditing(false);
   };
 
@@ -568,6 +580,11 @@ export function Profile() {
         {/* Edit Form */}
         {isEditing && (
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
