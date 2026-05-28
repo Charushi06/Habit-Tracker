@@ -48,6 +48,24 @@ export function ExportModal({
   });
   
   const [showPreview, setShowPreview] = useState(true); // Default to true to show options immediately
+  const [exportingType, setExportingType] = useState<string | null>(null);
+
+  const handleExport = (type: 'json' | 'csv' | 'pdf', exportFn?: () => void) => {
+    if (exportingType) return;
+    setExportingType(type);
+    
+    // Allow thread to render loading state before running export block
+    setTimeout(() => {
+      try {
+        exportFn?.();
+      } catch (err) {
+        console.error('Export failed:', err);
+      } finally {
+        setExportingType(null);
+        onClose();
+      }
+    }, 500);
+  };
 
   // Initialize selected habits to all habits by default
   useEffect(() => {
@@ -272,15 +290,18 @@ export function ExportModal({
                 <div className="space-y-3">
                     {/* JSON Button */}
                     <button
-                      onClick={() => { onExportJSON?.(); onClose(); }}
-                      className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all group text-left"
+                      onClick={() => handleExport('json', onExportJSON)}
+                      disabled={exportingType !== null}
+                      className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all group text-left disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
                           <FileJson className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900 dark:text-white">JSON Format</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {exportingType === 'json' ? 'Exporting...' : 'JSON Format'}
+                          </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">Raw data structure</p>
                         </div>
                       </div>
@@ -289,15 +310,18 @@ export function ExportModal({
 
                     {/* CSV Button */}
                     <button
-                      onClick={() => { onExportCSV?.(); onClose(); }}
-                      className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-green-500 dark:hover:border-green-500 hover:shadow-md transition-all group text-left"
+                      onClick={() => handleExport('csv', onExportCSV)}
+                      disabled={exportingType !== null}
+                      className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-green-500 dark:hover:border-green-500 hover:shadow-md transition-all group text-left disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform">
                           <FileSpreadsheet className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900 dark:text-white">CSV Format</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {exportingType === 'csv' ? 'Exporting...' : 'CSV Format'}
+                          </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">Spreadsheet compatible</p>
                         </div>
                       </div>
@@ -306,15 +330,18 @@ export function ExportModal({
 
                     {/* PDF Button */}
                     <button
-                      onClick={() => { onExportPDF?.(); onClose(); }}
-                      className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-red-500 dark:hover:border-red-500 hover:shadow-md transition-all group text-left"
+                      onClick={() => handleExport('pdf', onExportPDF)}
+                      disabled={exportingType !== null}
+                      className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-red-500 dark:hover:border-red-500 hover:shadow-md transition-all group text-left disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform">
                           <FileText className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900 dark:text-white">PDF Report</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {exportingType === 'pdf' ? 'Generating Report...' : 'PDF Report'}
+                          </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">Formatted document</p>
                         </div>
                       </div>
