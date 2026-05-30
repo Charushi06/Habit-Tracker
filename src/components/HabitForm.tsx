@@ -175,16 +175,25 @@ export function HabitForm({ habitId, onClose, onHabitCreated, initial }: Props) 
 
   const trimmedName = name.trim();
 
+  async function handleSubmit(e: React.FormEvent) {
+  e.preventDefault();
+  setSaving(true);
+  setError('');
+
+  const trimmedName = name.trim();
+
   //Empty / whitespace check
   if (!trimmedName) {
       setError ("Habit name cannot be empty");
       setSaving(false);
       return;
-}
- //Duplicate check (ignore case + allow edit mode)
+  }
+ 
+  // Duplicate check (ignore case + allow edit mode)
+  // FIXED: Changed trimmedName.toLowercase() to trimmedName.toLowerCase()
   const isDuplicate = habits.some(
-  (h:any) =>
-  h.name.toLowerCase() === trimmedName.toLowercase() && h.id !== habitId
+    (h:any) =>
+      h.name.toLowerCase() === trimmedName.toLowerCase() && h.id !== habitId
   );
 
   if (isDuplicate) {
