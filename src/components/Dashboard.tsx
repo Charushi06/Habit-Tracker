@@ -45,7 +45,15 @@ const getCategories = (habit: { category?: string[] | null }): string[] => {
 };
 
 export function Dashboard() {
-  const { habits, loading, toggleCompletion, isCompleted, getStreak, deleteHabit } = useHabits();
+  const {
+    habits,
+    completions,
+      loading,
+    toggleCompletion,
+    isCompleted,
+    getStreak,
+    deleteHabit,
+  } = useHabits();
   const { signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
@@ -127,6 +135,45 @@ export function Dashboard() {
   const completedToday = filteredHabitsToday.filter((h) => isCompleted(h.id, today)).length;
   const totalActive = filteredHabitsToday.length;
   const reminderCount = habits.filter((h) => h.reminders_enabled && h.reminder_time).length;
+  const totalCompletions = completions.length;
+
+  const longestStreak =
+    habits.length > 0
+      ? Math.max(...habits.map((h) => getStreak(h.id)))
+      : 0;
+
+  const dashboardStats = [
+  {
+    icon: CheckCircle2,
+    color: 'green',
+    title: "Today's Progress",
+    value: `${completedToday}/${totalActive}`,
+  },
+  {
+    icon: Flame,
+    color: 'orange',
+    title: 'Active Habits',
+    value: totalActive,
+  },
+  {
+    icon: Calendar,
+    color: 'blue',
+    title: 'Completion Rate',
+    value: `${totalActive > 0 ? Math.round((completedToday / totalActive) * 100) : 0}%`,
+  },
+  {
+    icon: TrendingUp,
+    color: 'purple',
+    title: 'Total Completions',
+    value: totalCompletions,
+  },
+  {
+    icon: Flame,
+    color: 'red',
+    title: 'Longest Streak',
+    value: `${longestStreak} days`,
+  },
+];
 
   useEffect(() => {
     if (totalActiveForMilestone === 0) {
@@ -282,27 +329,8 @@ export function Dashboard() {
 
           {currentView === 'dashboard' && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {[
-                  {
-                    icon: CheckCircle2,
-                    color: 'green',
-                    title: "Today's Progress",
-                    value: `${completedToday}/${totalActive}`,
-                  },
-                  {
-                    icon: Flame,
-                    color: 'orange',
-                    title: 'Active Habits',
-                    value: totalActive,
-                  },
-                  {
-                    icon: Calendar,
-                    color: 'blue',
-                    title: 'Completion Rate',
-                    value: `${totalActive > 0 ? Math.round((completedToday / totalActive) * 100) : 0}%`,
-                  },
-                ].map(({ icon: Icon, color, title, value }) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                {dashboardStats.map(({ icon: Icon, color, title, value }) => (
                   <div
                     key={title}
                     className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700"
